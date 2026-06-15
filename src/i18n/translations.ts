@@ -99,6 +99,8 @@ export const translations = {
       enterName: "Enter name...",
       cancel: "Cancel",
       ok: "Create",
+      delete: "Delete",
+      confirmDelete: "Are you sure you want to delete this?",
     },
     help: {
       intro: "A minimal file previewer & editor for macOS, Windows, and Linux.",
@@ -240,6 +242,8 @@ export const translations = {
       enterName: "输入名称...",
       cancel: "取消",
       ok: "创建",
+      delete: "删除",
+      confirmDelete: "确定要删除吗？此操作不可撤销。",
     },
     help: {
       intro: "一个极简的文件预览与编辑器，跨 macOS、Windows 和 Linux。",

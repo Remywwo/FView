@@ -745,6 +745,9 @@ html, body, #root {
   transition: background 0.1s;
 }
 .context-menu-item:hover { background: var(--md-code-bg); }
+.context-menu-item--danger { color: #ef4444; }
+.context-menu-item--danger:hover { background: #fef2f2; }
+.context-menu-divider { height: 1px; background: var(--md-border); margin: 4px 8px; }
 
 /* ---------- create input dialog ---------- */
 .create-input-overlay {

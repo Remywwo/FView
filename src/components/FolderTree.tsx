@@ -11,15 +11,17 @@ interface Props {
   onRefresh: () => void;
   onCreateFile: (dirPath: string, name: string) => void;
   onCreateFolder: (dirPath: string, name: string) => void;
+  onDeleteItem: (path: string) => void;
   loading: boolean;
   error: string | null;
 }
 
-export function FolderTree({ root, selectedPath, onSelectFile, onClose, onRefresh, onCreateFile, onCreateFolder, loading, error }: Props) {
+export function FolderTree({ root, selectedPath, onSelectFile, onClose, onRefresh, onCreateFile, onCreateFolder, onDeleteItem, loading, error }: Props) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set([root.path]));
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; dirPath: string } | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; path: string; isDir: boolean } | null>(null);
   const [createInput, setCreateInput] = useState<{ dirPath: string; kind: "file" | "folder" } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -47,19 +49,31 @@ export function FolderTree({ root, selectedPath, onSelectFile, onClose, onRefres
     });
   };
 
-  const handleContextMenu = useCallback((e: React.MouseEvent, dirPath: string) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent, path: string, isDir: boolean) => {
     e.preventDefault();
     e.stopPropagation();
-    setCtxMenu({ x: e.clientX, y: e.clientY, dirPath });
+    setCtxMenu({ x: e.clientX, y: e.clientY, path, isDir });
   }, []);
 
   const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
 
   const handleCreate = useCallback((kind: "file" | "folder") => {
     if (!ctxMenu) return;
-    setCreateInput({ dirPath: ctxMenu.dirPath, kind });
+    setCreateInput({ dirPath: ctxMenu.path, kind });
     setCtxMenu(null);
   }, [ctxMenu]);
+
+  const handleDelete = useCallback(() => {
+    if (!ctxMenu) return;
+    setConfirmDelete(ctxMenu.path);
+    setCtxMenu(null);
+  }, [ctxMenu]);
+
+  const confirmDeleteItem = useCallback(() => {
+    if (!confirmDelete) return;
+    onDeleteItem(confirmDelete);
+    setConfirmDelete(null);
+  }, [confirmDelete, onDeleteItem]);
 
   const commitCreate = useCallback(() => {
     if (!createInput || !inputRef.current) return;
@@ -117,11 +131,19 @@ export function FolderTree({ root, selectedPath, onSelectFile, onClose, onRefres
           style={{ left: ctxMenu.x, top: ctxMenu.y, position: "fixed" }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button className="context-menu-item" onClick={() => handleCreate("file")}>
-            {t("folder.newFile")}
-          </button>
-          <button className="context-menu-item" onClick={() => handleCreate("folder")}>
-            {t("folder.newFolder")}
+          {ctxMenu.isDir && (
+            <>
+              <button className="context-menu-item" onClick={() => handleCreate("file")}>
+                {t("folder.newFile")}
+              </button>
+              <button className="context-menu-item" onClick={() => handleCreate("folder")}>
+                {t("folder.newFolder")}
+              </button>
+              <div className="context-menu-divider" />
+            </>
+          )}
+          <button className="context-menu-item context-menu-item--danger" onClick={handleDelete}>
+            {t("folder.delete")}
           </button>
         </div>
       )}
@@ -145,6 +167,21 @@ export function FolderTree({ root, selectedPath, onSelectFile, onClose, onRefres
           </div>
         </div>
       )}
+
+      {confirmDelete && (
+        <div className="create-input-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="create-input-box" onClick={(e) => e.stopPropagation()}>
+            <div className="create-input-title">{t("folder.confirmDelete")}</div>
+            <div className="create-input-title" style={{ fontWeight: 400, fontSize: "0.82em", color: "var(--md-muted)", wordBreak: "break-all" }}>
+              {confirmDelete}
+            </div>
+            <div className="create-input-actions">
+              <button onClick={() => setConfirmDelete(null)}>{t("folder.cancel")}</button>
+              <button className="primary" style={{ background: "#ef4444", borderColor: "#ef4444" }} onClick={confirmDeleteItem}>{t("folder.delete")}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
@@ -156,7 +193,7 @@ interface NodeProps {
   selectedPath: string | null;
   onToggle: (path: string) => void;
   onSelectFile: (path: string) => void;
-  onContextMenu: (e: React.MouseEvent, dirPath: string) => void;
+  onContextMenu: (e: React.MouseEvent, path: string, isDir: boolean) => void;
 }
 
 function TreeNode({ node, depth, expanded, selectedPath, onToggle, onSelectFile, onContextMenu }: NodeProps) {
@@ -167,6 +204,7 @@ function TreeNode({ node, depth, expanded, selectedPath, onToggle, onSelectFile,
           className={`tree-row file${selectedPath === node.path ? " selected" : ""}`}
           style={{ paddingLeft: `${0.4 + depth * 0.85}rem` }}
           onClick={() => onSelectFile(node.path)}
+          onContextMenu={(e) => onContextMenu(e, node.path, false)}
           title={node.path}
         >
           <span className="tree-toggle-spacer" />
@@ -184,7 +222,7 @@ function TreeNode({ node, depth, expanded, selectedPath, onToggle, onSelectFile,
         className="tree-row folder"
         style={{ paddingLeft: `${0.4 + depth * 0.85}rem` }}
         onClick={() => onToggle(node.path)}
-        onContextMenu={(e) => onContextMenu(e, node.path)}
+        onContextMenu={(e) => onContextMenu(e, node.path, true)}
         title={node.path}
       >
         <span className="tree-toggle" aria-hidden="true">

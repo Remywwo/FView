@@ -178,6 +178,10 @@ export default function App() {
             onRefresh={folder.refresh}
             onCreateFile={folder.createFile}
             onCreateFolder={folder.createFolder}
+            onDeleteItem={(path) => {
+              folder.deleteItem(path);
+              if (current?.path === path) close();
+            }}
             loading={folder.loading}
             error={folder.error}
           />

@@ -117,6 +117,9 @@ kbd {
 
 /* ---------- macOS warning banner ---------- */
 .macos-banner {
+  position: sticky;
+  top: 60px;
+  z-index: 49;
   display: flex;
   align-items: center;
   justify-content: center;

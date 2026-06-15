@@ -1,8 +1,9 @@
 name: Update download links on release
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Release FView Power"]
+    types: [completed]
 
 permissions:
   contents: write
@@ -16,7 +17,7 @@ jobs:
       - name: Update download links in docs
         run: |
           set -e
-          TAG="${{ github.event.release.tag_name }}"
+          TAG=$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName --jq '.[0].tagName')
           REPO="${{ github.repository }}"
 
           # Fetch asset names from the release
@@ -87,7 +88,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/index.html
-          git commit -m "docs: auto-update download links for ${{ github.event.release.tag_name }}"
+          git commit -m "docs: auto-update download links to latest release"
           git push
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

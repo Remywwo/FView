@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkFrontmatter from "remark-frontmatter";
 import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import rehypeSlug from "rehype-slug";
@@ -116,7 +117,7 @@ export function MarkdownPreview({ file, setContent, isDark }: Props) {
       >
         <div className="mx-auto px-12 py-10 prose dark:prose-invert" style={proseStyle}>
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[remarkGfm, remarkFrontmatter]}
             rehypePlugins={[rehypeRaw, rehypeSlug, rehypeSourceLine, rehypeHighlight]}
             components={{
               a({ node: _node, href, ...props }) {

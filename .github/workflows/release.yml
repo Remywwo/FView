@@ -89,7 +89,7 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'FView Power ${{ github.ref_name }}'
           releaseBody: 'See the assets below to download FView Power for your platform.'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           tauriScript: "tauri:ci"
           args: ${{ matrix.args }}

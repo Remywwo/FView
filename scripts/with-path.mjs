@@ -4,7 +4,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir, platform } from "node:os";
-import { delimiter, join, resolve } from "node:path";
+import { join } from "node:path";
 
 function isExecutable(p) {
   if (!p) return false;
@@ -16,6 +16,19 @@ function isExecutable(p) {
 
 function findCargoDir() {
   const exe = platform === "win32" ? "cargo.exe" : "cargo";
+  const sep = platform === "win32" ? ";" : ":";
+  const tried = [];
+
+  // 1. Scan current PATH first — cargo may already be there
+  //    (GitHub Actions Windows runner puts cargo in PATH; on Linux/macOS
+  //    it works after `dtolnay/rust-toolchain` configures the toolchain)
+  for (const dir of (process.env.PATH || "").split(sep)) {
+    if (!dir) continue;
+    tried.push(dir);
+    if (isExecutable(join(dir, exe))) return dir;
+  }
+
+  // 2. Fall back to common install locations
   const home = homedir();
   const candidates = [
     process.env.CARGO_HOME ? join(process.env.CARGO_HOME, "bin") : null,
@@ -32,6 +45,7 @@ function findCargoDir() {
     "/home/runner/.cargo/bin",                          // GitHub Actions Linux
   ].filter(Boolean);
   for (const dir of candidates) {
+    tried.push(dir);
     if (isExecutable(join(dir, exe))) return dir;
   }
   return null;
@@ -41,6 +55,7 @@ const cargoDir = findCargoDir();
 if (!cargoDir) {
   console.error("[with-path] Could not locate cargo. Tried:");
   const tried = [
+    ...(process.env.PATH || "").split(platform === "win32" ? ";" : ":"),
     process.env.CARGO_HOME ? join(process.env.CARGO_HOME, "bin") : null,
     platform === "win32" && process.env.USERPROFILE
       ? join(process.env.USERPROFILE, ".cargo", "bin")
@@ -54,7 +69,7 @@ if (!cargoDir) {
     "/root/.cargo/bin",
     "/home/runner/.cargo/bin",
   ].filter(Boolean);
-  for (const d of tried) console.error("  -", d);
+  for (const d of new Set(tried)) console.error("  -", d);
   console.error("\nPlease install Rust via https://rustup.rs/");
   process.exit(1);
 }

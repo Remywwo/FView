@@ -85,12 +85,13 @@ html, body, #root {
 
 /* Resizable panel handle */
 [data-panel-resize-handle-enabled] {
-  background: transparent;
-  width: 1px !important;
-  transition: background 0.15s;
+  background: var(--md-border);
+  width: 3px !important;
+  transition: background 0.15s, width 0.15s;
 }
 [data-panel-resize-handle-enabled]:hover, [data-panel-resize-handle-enabled][data-resize-handle-active] {
   background: var(--md-accent);
+  width: 5px !important;
 }
 
 /* Smooth scroll for Markdown preview anchor jumps */

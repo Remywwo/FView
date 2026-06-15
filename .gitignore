@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+src-tauri/target
+src-tauri/gen
+*.log
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
+

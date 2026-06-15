@@ -9,6 +9,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { EditorView } from "@codemirror/view";
+import { open } from "@tauri-apps/plugin-shell";
 import type { LoadedFile } from "@/hooks/useFileLoader";
 import { useFileLoader } from "@/hooks/useFileLoader";
 import { useSettings, getFontStack } from "@/hooks/useSettings";
@@ -118,8 +119,22 @@ export function MarkdownPreview({ file, setContent, isDark }: Props) {
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw, rehypeSlug, rehypeSourceLine, rehypeHighlight]}
             components={{
-              a({ node: _node, ...props }) {
-                return <a {...props} target="_blank" rel="noreferrer" />;
+              a({ node: _node, href, ...props }) {
+                const isExternal = href && /^https?:\/\//.test(href);
+                return (
+                  <a
+                    href={href}
+                    {...props}
+                    {...(isExternal
+                      ? {
+                          onClick: (e) => {
+                            e.preventDefault();
+                            open(href!);
+                          },
+                        }
+                      : {})}
+                  />
+                );
               },
             }}
           >

@@ -33,6 +33,7 @@
         "**"
       ]
     },
-    "cli:default"
+    "cli:default",
+    "shell:allow-open"
   ]
 }

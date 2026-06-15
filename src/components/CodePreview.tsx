@@ -77,13 +77,7 @@ export function CodePreview({ file, setContent, isDark, readOnly = false }: Prop
   return (
     <div className="flex flex-col h-full">
       <div className="toolbar">
-        <span className="file-info">{file.name}</span>
-        {file.language && (
-          <>
-            <span className="divider" />
-            <span className="file-info">{file.language}</span>
-          </>
-        )}
+        {file.language && <span className="file-info">{file.language}</span>}
         {readOnly && (
           <>
             <span className="divider" />

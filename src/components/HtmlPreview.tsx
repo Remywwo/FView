@@ -149,8 +149,6 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
   return (
     <div className="flex flex-col h-full">
       <div className="toolbar">
-        <span className="file-info">{file.name}</span>
-        <span className="divider" />
         <button onClick={() => setMode("split")} disabled={mode === "split"}>
           {t("html.split")}
         </button>

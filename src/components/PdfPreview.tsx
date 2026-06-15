@@ -161,8 +161,6 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
   return (
     <div className="flex flex-col h-full">
       <div className="toolbar">
-        <span className="file-info">{file.name}</span>
-        <span className="divider" />
         <button onClick={goPrev} disabled={currentPage <= 1} title={t("pdf.prevTitle")}>{t("pdf.prev")}</button>
         <span
           className="file-info"

@@ -10,8 +10,6 @@ export function TextPreview({ file }: { file: LoadedFile }) {
   return (
     <div className="flex flex-col h-full">
       <div className="toolbar">
-        <span className="file-info">{file.name}</span>
-        <span className="divider" />
         <span className="file-info">{file.content.length.toLocaleString()} chars · {lines.length.toLocaleString()} lines</span>
         <div className="spacer" />
         <span className="file-info">{t("text.readOnly")}</span>

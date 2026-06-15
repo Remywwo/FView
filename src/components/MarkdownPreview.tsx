@@ -149,8 +149,6 @@ export function MarkdownPreview({ file, setContent, isDark }: Props) {
   return (
     <div className="flex flex-col h-full">
       <div className="toolbar">
-        <span className="file-info">{file.name}</span>
-        <span className="divider" />
         <button onClick={() => setMode("split")} disabled={mode === "split"}>{t("md.split")}</button>
         <button onClick={() => setMode("editor")} disabled={mode === "editor"}>{t("md.edit")}</button>
         <button onClick={() => setMode("preview")} disabled={mode === "preview"}>{t("md.preview")}</button>

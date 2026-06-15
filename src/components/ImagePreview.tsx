@@ -43,8 +43,6 @@ export function ImagePreview({ file }: { file: LoadedFile }) {
   return (
     <div className="flex flex-col h-full">
       <div className="toolbar">
-        <span className="file-info">{file.name}</span>
-        <span className="divider" />
         <button onClick={() => setScale((s) => Math.max(0.1, +(s - 0.1).toFixed(2)))}>−</button>
         <span className="file-info">{Math.round(scale * 100)}%</span>
         <button onClick={() => setScale((s) => Math.min(5, +(s + 0.1).toFixed(2)))}>+</button>

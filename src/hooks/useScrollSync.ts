@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { EditorView } from "@codemirror/view";
 
-const DELAY_MS = 300;
+const DELAY_MS = 250;
 const LOCK_MS = 400;
 
 export function useScrollSync(

@@ -100,6 +100,7 @@ export const translations = {
       cancel: "Cancel",
       ok: "Create",
       delete: "Delete",
+      rename: "Rename",
       confirmDelete: "Are you sure you want to delete this?",
     },
     help: {
@@ -243,6 +244,7 @@ export const translations = {
       cancel: "取消",
       ok: "创建",
       delete: "删除",
+      rename: "重命名",
       confirmDelete: "确定要删除吗？此操作不可撤销。",
     },
     help: {

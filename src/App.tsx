@@ -182,6 +182,7 @@ export default function App() {
               folder.deleteItem(path);
               if (current?.path === path) close();
             }}
+            onRenameItem={folder.renameItem}
             loading={folder.loading}
             error={folder.error}
           />

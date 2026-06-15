@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { writeTextFile, mkdir, remove } from "@tauri-apps/plugin-fs";
+import { writeTextFile, mkdir, remove, rename } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { scanFolder, type FolderNode } from "@/utils/scanFolder";
 
@@ -71,10 +71,23 @@ export function useFolder() {
     await refresh();
   }, [refresh]);
 
+  const renameItem = useCallback(async (oldPath: string, newName: string) => {
+    const dir = oldPath.substring(0, oldPath.lastIndexOf("/"));
+    if (!dir && oldPath.includes("\\")) {
+      const idx = oldPath.lastIndexOf("\\");
+      const newPath = oldPath.substring(0, idx + 1) + newName;
+      await rename(oldPath, newPath);
+    } else {
+      const newPath = dir ? `${dir}/${newName}` : newName;
+      await rename(oldPath, newPath);
+    }
+    await refresh();
+  }, [refresh]);
+
   const close = useCallback(() => {
     setRoot(null);
     setError(null);
   }, []);
 
-  return { root, loading, error, openFolder, setFolderPath, refresh, createFile, createFolder, deleteItem, close };
+  return { root, loading, error, openFolder, setFolderPath, refresh, createFile, createFolder, deleteItem, renameItem, close };
 }

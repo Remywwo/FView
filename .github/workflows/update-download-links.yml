@@ -11,6 +11,8 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -90,5 +92,3 @@ jobs:
           git add docs/index.html
           git commit -m "docs: auto-update download links to latest release"
           git push
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

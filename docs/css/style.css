@@ -300,8 +300,7 @@ kbd {
 .shot img {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 5;
-  object-fit: cover;
+  height: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--bg);

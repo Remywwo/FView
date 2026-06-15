@@ -58,6 +58,11 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Add Rust to PATH (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: echo "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Add cross-compile target
         if: matrix.platform == 'macos (Intel)'
         run: rustup target add x86_64-apple-darwin
@@ -86,6 +91,7 @@ jobs:
           releaseBody: 'See the assets below to download FView Power for your platform.'
           releaseDraft: true
           prerelease: false
+          tauriScript: "tauri:ci"
           args: ${{ matrix.args }}
 
   release-please:

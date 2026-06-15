@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "tauri": "node scripts/with-path.mjs tauri",
     "tauri:dev": "node scripts/with-path.mjs tauri dev",
-    "tauri:build": "node scripts/with-path.mjs tauri build"
+    "tauri:build": "node scripts/with-path.mjs tauri build",
+    "tauri:ci": "tauri"
   },
   "dependencies": {
     "@codemirror/lang-css": "^6.3.0",

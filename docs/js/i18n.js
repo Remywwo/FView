@@ -41,6 +41,7 @@
     "screenshots.lead":   "没有 chrome、没有装饰，每一像素都为内容服务。",
     "screenshots.cap1":   "Markdown · 滚动同步",
     "screenshots.cap2":   "HTML · 实时预览",
+    "screenshots.cap3":   "PRD 预览",
 
     "shortcuts.eyebrow":"SHORTCUTS",
     "shortcuts.title":  "键盘即速度",
@@ -119,6 +120,7 @@
     "screenshots.lead":   "No chrome, no decoration. Every pixel serves the content.",
     "screenshots.cap1":   "Markdown · scroll sync",
     "screenshots.cap2":   "HTML · live preview",
+    "screenshots.cap3":   "PRD preview",
 
     "shortcuts.eyebrow":"SHORTCUTS",
     "shortcuts.title":  "Keyboard is speed",

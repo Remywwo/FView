@@ -58,13 +58,12 @@ export function MarkdownView({ content }: Props) {
     <div
       className="prose"
       onClick={(e) => {
-        const t = e.target as HTMLElement;
-        if (t.tagName === "A" && t instanceof HTMLAnchorElement) {
-          const href = t.getAttribute("href") || "";
-          if (href.startsWith("http://") || href.startsWith("https://")) {
-            e.preventDefault();
-            openExternal(href);
-          }
+        const a = (e.target as HTMLElement).closest("a");
+        if (!(a instanceof HTMLAnchorElement)) return;
+        const href = a.getAttribute("href") || "";
+        if (href.startsWith("http://") || href.startsWith("https://")) {
+          e.preventDefault();
+          openExternal(href);
         }
       }}
       dangerouslySetInnerHTML={{ __html: html }}

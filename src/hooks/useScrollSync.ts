@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { EditorView } from "@codemirror/view";
 
-const DELAY_MS = 80;
-const LOCK_MS = 400;
+const DELAY_MS = 50;
+const LOCK_MS = 300;
 
 export function useScrollSync(
   editorView: EditorView | null,
@@ -39,19 +39,17 @@ export function useScrollSync(
       return best;
     };
 
-    /** Find first block element visible at the given scrollTop */
-    const findBlockAtScrollTop = (scrollTop: number): HTMLElement | null => {
+    /** Find the first block element visible at the top of the viewport */
+    const findBlockAtTop = (): HTMLElement | null => {
+      const containerTop = previewScroll.getBoundingClientRect().top;
       const blocks = previewScroll.querySelectorAll<HTMLElement>("[data-source-line]");
       let best: HTMLElement | null = null;
-      let bestOffset = Infinity;
       for (const el of Array.from(blocks)) {
-        const off = el.offsetTop;
-        if (off <= scrollTop && scrollTop - off < bestOffset) {
-          best = el;
-          bestOffset = scrollTop - off;
-        }
+        const r = el.getBoundingClientRect();
+        if (r.bottom > containerTop + 1) return el;
       }
-      return best;
+      // Fallback: last block (scrolled past everything)
+      return blocks.length > 0 ? blocks[blocks.length - 1] : null;
     };
 
     const onEditorScroll = () => {
@@ -66,7 +64,8 @@ export function useScrollSync(
         const target = findBlockAtLine(lineNo);
         if (target) {
           lockUntilRef.current = performance.now() + LOCK_MS;
-          previewScroll.scrollTop = target.offsetTop;
+          // scrollIntoView handles offsetParent math correctly
+          target.scrollIntoView({ block: "start" });
         }
       }, DELAY_MS);
     };
@@ -75,8 +74,7 @@ export function useScrollSync(
       if (isLocked()) return;
       cancelPending();
       timerRef.current = window.setTimeout(() => {
-        const top = previewScroll.scrollTop;
-        const target = findBlockAtScrollTop(top);
+        const target = findBlockAtTop();
         if (!target) return;
         const lineNo = parseInt(target.getAttribute("data-source-line") || "0", 10);
         if (!lineNo) return;

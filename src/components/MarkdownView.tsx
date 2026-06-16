@@ -1,14 +1,17 @@
-// @ts-expect-error - no type definitions for markdown-it-task-lists
-import taskLists from "markdown-it-task-lists";
 import { useMemo } from "react";
 import MarkdownIt from "markdown-it";
 import type { Token } from "markdown-it/index.js";
+// @ts-expect-error - no type definitions for markdown-it-task-lists
+import taskLists from "markdown-it-task-lists";
 import anchor from "markdown-it-anchor";
 import hljs from "highlight.js";
 import { open as openExternal } from "@tauri-apps/plugin-shell";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface Props {
   content: string;
+  /** Directory of the markdown file, used to resolve relative image paths */
+  fileDir?: string;
 }
 
 const SOURCE_LINE_TAGS = new Set([
@@ -48,11 +51,12 @@ function stripFrontmatter(s: string): string {
   return s.replace(/^---\n[\s\S]*?\n---\n?/, "");
 }
 
-export function MarkdownView({ content }: Props) {
+export function MarkdownView({ content, fileDir }: Props) {
   const html = useMemo(() => {
     const stripped = stripFrontmatter(content);
-    return md.render(stripped);
-  }, [content]);
+    const out = md.render(stripped, { fileDir });
+    return resolveLocalImages(out, fileDir);
+  }, [content, fileDir]);
 
   return (
     <div
@@ -68,5 +72,33 @@ export function MarkdownView({ content }: Props) {
       }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
+  );
+}
+
+/**
+ * Convert relative image src to asset:// URL so the Tauri WebView can load
+ * local images. Absolute http(s) / data / asset URLs are left untouched.
+ */
+function resolveLocalImages(html: string, fileDir?: string): string {
+  if (!fileDir) return html;
+  const sep = fileDir.includes("\\") ? "\\" : "/";
+  return html.replace(
+    /<img([^>]*?)\ssrc="([^"]+)"/g,
+    (match, attrs, src) => {
+      if (
+        src.startsWith("http://") ||
+        src.startsWith("https://") ||
+        src.startsWith("data:") ||
+        src.startsWith("asset:") ||
+        src.startsWith("blob:") ||
+        src.startsWith("/") ||
+        src.startsWith("file:")
+      ) {
+        return match;
+      }
+      const abs = `${fileDir.replace(/[\\/]+$/, "")}${sep}${src.replace(/^\.+\\/, "")}`;
+      const assetUrl = convertFileSrc(abs);
+      return `<img${attrs} src="${assetUrl}"`;
+    }
   );
 }

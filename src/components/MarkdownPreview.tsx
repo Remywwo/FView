@@ -111,7 +111,7 @@ export function MarkdownPreview({ file, setContent, isDark }: Props) {
         className="h-full overflow-auto preview-scroll"
       >
         <div className="mx-auto px-12 py-10 prose dark:prose-invert" style={proseStyle}>
-          <MarkdownView content={file.content} />
+          <MarkdownView content={file.content} fileDir={file.path.replace(/[\\/][^\\/]*$/, "")} />
         </div>
       </div>
       <TocSidebar headings={headings} />

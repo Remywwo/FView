@@ -1,12 +1,13 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MarkdownIt from "markdown-it";
 import type { Token, Renderer, Options } from "markdown-it/index.js";
-// @ts-expect-error - no type definitions for markdown-it-task-lists
+// @ts-expect-error
 import taskLists from "markdown-it-task-lists";
 import anchor from "markdown-it-anchor";
 import hljs from "highlight.js";
 import { open as openExternal } from "@tauri-apps/plugin-shell";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { readFile } from "@tauri-apps/plugin-fs";
+import { join } from "@tauri-apps/api/path";
 
 interface Props {
   content: string;
@@ -22,6 +23,23 @@ const SOURCE_LINE_TAGS = new Set([
   "p", "ul", "ol", "pre", "blockquote",
   "table", "hr", "li", "details",
 ]);
+
+const MIME: Record<string, string> = {
+  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
+  gif: "image/gif", svg: "image/svg+xml", webp: "image/webp",
+  bmp: "image/bmp", ico: "image/x-icon",
+};
+
+function ext(name: string) {
+  const i = name.lastIndexOf(".");
+  return i === -1 ? "" : name.slice(i + 1).toLowerCase();
+}
+
+function cleanupRel(s: string) {
+  let r = s;
+  try { r = decodeURIComponent(r); } catch {}
+  return r.replace(/^\.[/\\]/, "");
+}
 
 const md = new MarkdownIt({
   html: true,
@@ -50,49 +68,68 @@ md.renderer.render = (tokens: Token[], options: Options, env: MarkdownEnv) => {
   return defaultRender(tokens, options, env);
 };
 
-// Override image renderer to resolve local paths via convertFileSrc
-const origImage = md.renderer.rules.image!;
-md.renderer.rules.image = function (tokens: Token[], idx: number, options: Options, env: MarkdownEnv, self: Renderer): string {
-  const token = tokens[idx];
-  let src = token.attrGet("src") || "";
-
-  if (
-    !src.startsWith("http://") &&
-    !src.startsWith("https://") &&
-    !src.startsWith("data:") &&
-    !src.startsWith("asset:") &&
-    !src.startsWith("blob:") &&
-    !src.startsWith("/") &&
-    !src.startsWith("file:") &&
-    env.fileDir
-  ) {
-    // URL-decode in case the markdown source already uses percent-encoding
-    // (e.g. Chinese characters in file paths). Otherwise convertFileSrc
-    // encodes again, producing double-encoded garbage.
-    let decoded = src;
-    try { decoded = decodeURIComponent(src); } catch {}
-    const sep = env.fileDir.includes("\\") ? "\\" : "/";
-    const base = env.fileDir.replace(/[\\/]+$/, "");
-    const rel = decoded.startsWith("./") ? decoded.slice(2) : decoded;
-
-    // Percent-encode each path segment so convertFileSrc only has to
-    // handle slashes. Raw Unicode paths may fail convertFileSrc on macOS.
-    const abs = `${base.split(/[\\/]/).map(encodeURIComponent).join(sep)}${sep}${rel.split(/[\\/]/).map(encodeURIComponent).join(sep)}`;
-    token.attrSet("src", convertFileSrc(abs));
-  }
-
-  return origImage(tokens, idx, options, env, self);
-};
-
 function stripFrontmatter(s: string): string {
   return s.replace(/^---\n[\s\S]*?\n---\n?/, "");
 }
 
+const LOCAL_IMG_RE = /src="((?!https?:|data:|blob:|asset:|file:|#|\/)[^"]+)"/g;
+
+/** Read image bytes and return a data: URI */
+async function imageDataUri(absPath: string): Promise<string | null> {
+  try {
+    const bytes = await readFile(absPath);
+    const mime = MIME[ext(absPath)] || "image/png";
+    const base64 = btoa(String.fromCharCode(...bytes));
+    return `data:${mime};base64,${base64}`;
+  } catch {
+    return null;
+  }
+}
+
 export function MarkdownView({ content, fileDir }: Props) {
+  const [blobs, setBlobs] = useState<Record<string, string>>({});
+  const pending = useRef<Set<string>>(new Set());
+
+  const stripped = useMemo(() => stripFrontmatter(content), [content]);
+  const rawHtml = useMemo(() => md.render(stripped, { fileDir }), [stripped, fileDir]);
+
+  // Pre-load local images as data URIs
+  useEffect(() => {
+    if (!fileDir) return;
+    LOCAL_IMG_RE.lastIndex = 0;
+    const srcs: string[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = LOCAL_IMG_RE.exec(rawHtml)) !== null) {
+      if (!pending.current.has(m[1])) {
+        pending.current.add(m[1]);
+        srcs.push(m[1]);
+      }
+    }
+    if (srcs.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      const map: Record<string, string> = {};
+      for (const src of srcs) {
+        if (cancelled) break;
+        const abs = await join(fileDir, cleanupRel(src));
+        const uri = await imageDataUri(abs);
+        if (uri) map[src] = uri;
+      }
+      if (!cancelled) setBlobs((prev) => ({ ...prev, ...map }));
+    })();
+    return () => { cancelled = true; };
+  }, [rawHtml, fileDir]);
+
+  // Substitute local images
   const html = useMemo(() => {
-    const stripped = stripFrontmatter(content);
-    return md.render(stripped, { fileDir });
-  }, [content, fileDir]);
+    if (Object.keys(blobs).length === 0) return rawHtml;
+    LOCAL_IMG_RE.lastIndex = 0;
+    return rawHtml.replace(LOCAL_IMG_RE, (match, src) => {
+      const uri = blobs[src];
+      return uri ? `src="${uri}"` : match;
+    });
+  }, [rawHtml, blobs]);
 
   return (
     <div

@@ -113,6 +113,7 @@ export function MarkdownView({ content, fileDir }: Props) {
         srcs.push(m[1]);
       }
     }
+    console.log("[md-img] found", srcs.length, "local images:", srcs);
     if (srcs.length === 0) return;
 
     let cancelled = false;
@@ -120,8 +121,11 @@ export function MarkdownView({ content, fileDir }: Props) {
       const map: Record<string, string> = {};
       for (const src of srcs) {
         if (cancelled) break;
-        const abs = await join(fileDir, cleanupRel(src));
+        const rel = cleanupRel(src);
+        const abs = await join(fileDir, rel);
+        console.log("[md-img] src:", src, "→ rel:", rel, "→ abs:", abs);
         const uri = await imageDataUri(abs);
+        console.log("[md-img] uri:", uri ? `${uri.slice(0, 50)}...` : "FAILED");
         if (uri) map[src] = uri;
       }
       if (!cancelled) setBlobs((prev) => ({ ...prev, ...map }));

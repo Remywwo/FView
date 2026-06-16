@@ -49,7 +49,14 @@ html, body, #root {
   line-height: var(--cm-line-height, 1.55);
 }
 .cm-editor.cm-focused { outline: none; }
-.cm-editor .cm-scroller { font-family: inherit; }
+.cm-editor .cm-scroller {
+  font-family: inherit;
+  /* VSCode-style "scroll beyond last line": when the cursor reaches the last line the
+     user can still scroll ~one viewport below it, so typing never feels jammed against
+     the viewport bottom. The 22px subtraction is a small caret-height compensation,
+     matching the exact value in vscode/extensions/markdown-language-features/media/markdown.css. */
+  padding-bottom: calc(100vh - 22px);
+}
 .cm-editor .cm-gutters {
   background: transparent !important;
   border-right: 1px solid var(--md-border);
@@ -97,6 +104,249 @@ html, body, #root {
 /* Smooth scroll for Markdown preview anchor jumps */
 .preview-scroll {
   scrollbar-gutter: stable;
+  /* Same trick as .cm-scroller: ~one viewport of empty space below the content so the
+     preview is steady when typing at the end of the document. */
+  padding-bottom: calc(100vh - 22px);
+}
+
+/* ── ByteMD Editor ───────────────────────────────────────────────── */
+
+.bytemd {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  height: auto !important;
+  border: none;
+}
+
+.bytemd-body {
+  flex: 1;
+  min-height: 0;
+  height: auto !important;
+}
+
+/* MarkdownPreview mode buttons */
+.md-mode-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--md-fg);
+  padding: 0.3em 0.7em;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.1s, border-color 0.1s;
+}
+.md-mode-btn:hover {
+  background: var(--md-code-bg);
+  border-color: var(--md-border);
+}
+.md-mode-btn-active {
+  background: var(--md-code-bg);
+  border-color: var(--md-border);
+  font-weight: 600;
+  color: var(--md-fg);
+}
+
+/* Tailwind Preflight strips list markers — restore inside markdown-body */
+.markdown-body ul,
+.markdown-body menu { list-style: disc; }
+.markdown-body ol { list-style: decimal; }
+.markdown-body ul ul,
+.markdown-body ol ul { list-style: circle; }
+.markdown-body ol ol,
+.markdown-body ul ol { list-style: lower-alpha; }
+
+/* ── ByteMD UI — FView theme overrides ───────────────────────────── */
+
+/* hide ByteMD's built-in mode tabs (we have our own) */
+.bytemd-toolbar-tab { display: none !important; }
+/* hide ByteMD's built-in TOC button (triggered via hover handle) */
+.bytemd-toolbar-right > :first-child { display: none !important; }
+/* hide GitHub source-code icon + other extras */
+.bytemd-toolbar-right > :nth-child(3),
+.bytemd-toolbar-right > :nth-child(4),
+.bytemd-toolbar-right > :last-child { display: none !important; }
+
+.bytemd-toolbar {
+  background-color: var(--md-bg) !important;
+  border-color: var(--md-border) !important;
+  padding: 6px 12px !important;
+  min-height: 48px;
+  display: flex !important;
+  align-items: center;
+}
+.bytemd-toolbar-left,
+.bytemd-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.bytemd-toolbar-icon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle !important;
+}
+.bytemd-toolbar-icon svg,
+.bytemd-toolbar-icon img {
+  color: var(--md-muted);
+  padding: 5px !important;
+  width: 26px !important;
+  height: 26px !important;
+}
+.bytemd-toolbar-icon:hover {
+  background-color: var(--md-border) !important;
+}
+.bytemd-toolbar-icon:hover svg,
+.bytemd-toolbar-icon:hover img {
+  color: var(--md-fg);
+}
+.bytemd-toolbar-icon-active {
+  color: var(--md-link) !important;
+}
+.bytemd-toolbar-tab {
+  color: var(--md-muted);
+  line-height: 36px !important;
+}
+.bytemd-toolbar-tab-active {
+  color: var(--md-link) !important;
+}
+
+/* ByteMD dropdowns */
+.bytemd-dropdown {
+  background: var(--md-bg);
+  border: 1px solid var(--md-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.bytemd-dropdown-title {
+  color: var(--md-muted);
+  border-color: var(--md-border);
+}
+.bytemd-dropdown-item {
+  color: var(--md-fg);
+}
+.bytemd-dropdown-item:hover {
+  background-color: var(--md-code-bg) !important;
+}
+
+/* ByteMD status bar */
+.bytemd-status {
+  background: var(--md-code-bg);
+  border-color: var(--md-border);
+  color: var(--md-muted);
+}
+.bytemd-status-right span {
+  color: var(--md-muted);
+}
+.bytemd-status-right span:hover {
+  color: var(--md-link) !important;
+}
+
+/* ByteMD sidebars */
+.bytemd-sidebar {
+  background: var(--md-bg);
+  border-color: var(--md-border);
+}
+.bytemd-sidebar h2 {
+  color: var(--md-fg);
+}
+.bytemd-sidebar-close:hover {
+  color: var(--md-link) !important;
+}
+
+/* ByteMD help */
+.bytemd-help ul {
+  color: var(--md-muted);
+}
+.bytemd-help li {
+  color: var(--md-fg);
+}
+
+/* ByteMD TOC */
+.bytemd-toc-active {
+  color: var(--md-link) !important;
+  background-color: var(--md-code-bg) !important;
+}
+.bytemd-toc li {
+  color: var(--md-muted);
+}
+.bytemd-toc li:hover {
+  color: var(--md-fg);
+}
+
+/* CodeMirror editor - use FView colors */
+.bytemd .CodeMirror {
+  background: var(--md-bg) !important;
+  color: var(--md-fg) !important;
+}
+.bytemd .CodeMirror-gutters {
+  background: var(--md-bg) !important;
+  border-color: var(--md-border) !important;
+}
+.bytemd .CodeMirror-linenumber { color: var(--md-muted) !important; }
+.bytemd .CodeMirror-cursor { border-color: var(--md-fg) !important; }
+.bytemd .CodeMirror-selected { background: #264f78 !important; }
+.bytemd .CodeMirror-activeline-background { background: var(--md-code-bg) !important; }
+.bytemd-editor .CodeMirror pre.CodeMirror-placeholder { color: var(--md-muted) !important; }
+
+/* Dark mode — outer container */
+.dark .bytemd {
+  background-color: var(--md-bg);
+  color: var(--md-fg);
+  border-color: var(--md-border);
+}
+
+/* Dark markdown body overrides */
+.md-write .bytemd-preview { display: none !important; }
+.md-write .bytemd-editor { display: block !important; width: 100% !important; }
+.md-preview .bytemd-editor { display: none !important; }
+.md-preview .bytemd-preview { display: block !important; width: 100% !important; }
+.md-preview .bytemd-split .bytemd-preview { border-left: none; }
+
+.dark .markdown-body {
+  color: var(--md-fg) !important;
+  background-color: var(--md-bg) !important;
+}
+.dark .markdown-body h1,
+.dark .markdown-body h2,
+.dark .markdown-body h3,
+.dark .markdown-body h4,
+.dark .markdown-body h5,
+.dark .markdown-body h6 {
+  color: var(--md-fg);
+  border-color: var(--md-border);
+}
+.dark .markdown-body a {
+  color: var(--md-link);
+}
+.dark .markdown-body blockquote {
+  color: var(--md-muted);
+  border-left-color: var(--md-border);
+}
+.dark .markdown-body code {
+  background-color: var(--md-code-bg);
+}
+.dark .markdown-body pre {
+  background-color: var(--md-code-bg);
+}
+.dark .markdown-body table th,
+.dark .markdown-body table td {
+  border-color: var(--md-border);
+}
+.dark .markdown-body table tr {
+  background-color: var(--md-bg);
+  border-color: var(--md-border);
+}
+.dark .markdown-body table tr:nth-child(2n) {
+  background-color: var(--md-code-bg);
+}
+.dark .markdown-body hr {
+  background-color: var(--md-border);
+}
+.dark .bytemd-split .bytemd-preview {
+  border-color: var(--md-border);
 }
 
 /* TOC floating drawer */
@@ -152,7 +402,7 @@ html, body, #root {
   height: 100%;
   overflow: auto;
   padding: 0.9rem 0.4rem 0.9rem 0.6rem;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
 }
 .toc-title {
@@ -285,7 +535,7 @@ html, body, #root {
 
 /* Folder sidebar (file tree) */
 .folder-sidebar {
-  width: 260px;
+  width: 283px;
   flex-shrink: 0;
   border-right: 1px solid var(--md-border);
   background: var(--md-bg);
@@ -300,8 +550,8 @@ html, body, #root {
   gap: 0.15rem;
   padding: 0.45rem 0.4rem 0.45rem 0.75rem;
   border-bottom: 1px solid var(--md-border);
-  font-size: 0.8em;
-  min-height: 36px;
+  font-size: 14px;
+  min-height: 48px;
   flex-shrink: 0;
 }
 .folder-sidebar-title {
@@ -338,7 +588,7 @@ html, body, #root {
   flex: 1;
   overflow: auto;
   padding: 0.3rem 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
   min-height: 0;
 }
@@ -701,8 +951,9 @@ html, body, #root {
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--md-border);
   background: var(--md-bg);
-  font-size: 0.85rem;
-  min-height: 44px;
+  font-size: 14px;
+  min-height: 48px;
+  height: 48px;
   flex-shrink: 0;
 }
 .toolbar button {

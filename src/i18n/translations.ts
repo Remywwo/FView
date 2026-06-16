@@ -66,8 +66,10 @@ export const translations = {
     },
     md: {
       split: "Split",
-      edit: "Edit",
+      write: "Write",
       preview: "Preview",
+      theme: "Theme",
+      edit: "Edit",
       modeHint: "⌘P mode",
       toc: "Table of Contents",
       noHeadings: "No headings",
@@ -210,8 +212,10 @@ export const translations = {
     },
     md: {
       split: "分屏",
-      edit: "编辑",
+      write: "写作",
       preview: "预览",
+      theme: "主题",
+      edit: "编辑",
       modeHint: "⌘P 切换模式",
       toc: "目录",
       noHeadings: "无标题",

@@ -95,7 +95,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="toolbar">
+       <div className="toolbar">
         <div className="open-menu" ref={openMenuRef}>
           <button
             onClick={() => setOpenMenuOpen((v) => !v)}
@@ -148,11 +148,11 @@ export default function App() {
         </div>
         <button onClick={save} disabled={!current?.isEditable || !current?.dirty} title={`${t("app.save")} (⌘S)`}>{t("app.save")}</button>
         <button onClick={saveAs} disabled={!current?.isEditable} title={`${t("app.saveAs")} (⇧⌘S)`}>{t("app.saveAs")}</button>
-        <button onClick={close} disabled={!current} title={`${t("app.close")} (⌘W)`}>{t("app.close")}</button>
-        <span className="divider" />
+          <button onClick={close} disabled={!current} title={`${t("app.close")} (⌘W)`}>{t("app.close")}</button>
+        <div style={{ flex: 1, textAlign: "right" }}>
         {current && <span className="file-info">{current.path || current.name}</span>}
         {current?.dirty && <span className="dirty-dot" title="Unsaved changes">●</span>}
-        <div className="spacer" />
+                 </div>
         <button onClick={() => setHelpOpen(true)} title={t("app.help")} className="flex items-center justify-center p-1.5">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
@@ -215,7 +215,7 @@ export default function App() {
           )}
 
           {current && current.kind === "markdown" && (
-            <MarkdownPreview file={current} setContent={setContent} isDark={isDark} />
+            <MarkdownPreview file={current} setContent={setContent} />
           )}
           {current && current.kind === "html" && (
             <HtmlPreview file={current} setContent={setContent} isDark={isDark} />

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { EditorView } from "@codemirror/view";
 
-const DELAY_MS = 50;
-const LOCK_MS = 300;
+const DEBOUNCE_MS = 30;
+const LOCK_MS = 120;
 
 export function useScrollSync(
   editorView: EditorView | null,
@@ -24,14 +24,16 @@ export function useScrollSync(
       }
     };
 
-    /** Find first block element whose data-source-line is >= lineNo */
-    const findBlockAtLine = (lineNo: number): HTMLElement | null => {
+    // markdown-it `t.map[0]` is 0-indexed; CodeMirror `doc.lineAt().number` is 1-indexed.
+    // Block at editor line N has data-source-line = N-1.
+
+    const findBlockContainingLine = (mdLine: number): HTMLElement | null => {
       const blocks = previewScroll.querySelectorAll<HTMLElement>("[data-source-line]");
       let best: HTMLElement | null = null;
-      let bestLine = Infinity;
+      let bestLine = -1;
       for (const el of Array.from(blocks)) {
         const ln = parseInt(el.getAttribute("data-source-line") || "0", 10);
-        if (ln >= lineNo && ln < bestLine) {
+        if (ln <= mdLine && ln > bestLine) {
           best = el;
           bestLine = ln;
         }
@@ -39,35 +41,39 @@ export function useScrollSync(
       return best;
     };
 
-    /** Find the first block element visible at the top of the viewport */
     const findBlockAtTop = (): HTMLElement | null => {
       const containerTop = previewScroll.getBoundingClientRect().top;
       const blocks = previewScroll.querySelectorAll<HTMLElement>("[data-source-line]");
+      if (blocks.length === 0) return null;
+      // Topmost block whose top edge is within or below container top
       let best: HTMLElement | null = null;
+      let bestTop = Infinity;
       for (const el of Array.from(blocks)) {
         const r = el.getBoundingClientRect();
-        if (r.bottom > containerTop + 1) return el;
+        if (r.top >= containerTop - 1 && r.top < bestTop) {
+          best = el;
+          bestTop = r.top;
+        }
       }
-      // Fallback: last block (scrolled past everything)
-      return blocks.length > 0 ? blocks[blocks.length - 1] : null;
+      if (best) return best;
+      // All blocks above viewport — return the last one
+      return blocks[blocks.length - 1];
     };
 
     const onEditorScroll = () => {
       if (isLocked()) return;
       cancelPending();
       timerRef.current = window.setTimeout(() => {
-        const top = editorScroll.scrollTop;
-        const block = editorView.lineBlockAtHeight(top);
+        const block = editorView.lineBlockAtHeight(editorScroll.scrollTop);
         if (!block) return;
-        const lineNo = editorView.state.doc.lineAt(block.from).number;
-
-        const target = findBlockAtLine(lineNo);
+        const cmLine = editorView.state.doc.lineAt(block.from).number;
+        // Convert CodeMirror (1-indexed) to markdown-it (0-indexed)
+        const target = findBlockContainingLine(cmLine - 1);
         if (target) {
           lockUntilRef.current = performance.now() + LOCK_MS;
-          // scrollIntoView handles offsetParent math correctly
           target.scrollIntoView({ block: "start" });
         }
-      }, DELAY_MS);
+      }, DEBOUNCE_MS);
     };
 
     const onPreviewScroll = () => {
@@ -76,18 +82,20 @@ export function useScrollSync(
       timerRef.current = window.setTimeout(() => {
         const target = findBlockAtTop();
         if (!target) return;
-        const lineNo = parseInt(target.getAttribute("data-source-line") || "0", 10);
-        if (!lineNo) return;
+        // data-source-line is markdown-it (0-indexed); CodeMirror is 1-indexed
+        const mdLine = parseInt(target.getAttribute("data-source-line") || "0", 10);
+        const cmLine = mdLine + 1;
+        if (cmLine < 1) return;
 
         try {
-          const line = editorView.state.doc.line(lineNo);
+          const line = editorView.state.doc.line(cmLine);
           const block = editorView.lineBlockAt(line.from);
           if (block) {
             lockUntilRef.current = performance.now() + LOCK_MS;
             editorScroll.scrollTop = block.top;
           }
         } catch {}
-      }, DELAY_MS);
+      }, DEBOUNCE_MS);
     };
 
     editorScroll.addEventListener("scroll", onEditorScroll, { passive: true });

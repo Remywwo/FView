@@ -89,8 +89,7 @@ async function imageDataUri(absPath: string): Promise<string | null> {
     const bytes = await readFile(absPath);
     const mime = MIME[ext(absPath)] || "image/png";
     return `data:${mime};base64,${bytesToBase64(bytes)}`;
-  } catch (e: any) {
-    console.error("[md-img] readFile failed for:", absPath, e?.message || e);
+  } catch {
     return null;
   }
 }
@@ -114,7 +113,6 @@ export function MarkdownView({ content, fileDir }: Props) {
         srcs.push(m[1]);
       }
     }
-    console.log("[md-img] found", srcs.length, "local images:", srcs);
     if (srcs.length === 0) return;
 
     let cancelled = false;
@@ -125,9 +123,7 @@ export function MarkdownView({ content, fileDir }: Props) {
         const rel = cleanupRel(src);
         const segments = rel.split(/[\\/]/);
         const abs = await join(fileDir, ...segments);
-        console.log("[md-img] src:", src, "→ rel:", rel, "→ abs:", abs);
         const uri = await imageDataUri(abs);
-        console.log("[md-img] uri:", uri ? `${uri.slice(0, 50)}...` : "FAILED");
         if (uri) map[src] = uri;
       }
       if (!cancelled) setBlobs((prev) => ({ ...prev, ...map }));

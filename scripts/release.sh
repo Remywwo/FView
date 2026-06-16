@@ -33,6 +33,7 @@ git commit -m "chore: bump version to $VERSION"
 git push origin main
 
 # Delete old tag + release, create new tag
+REPO=$(echo "$(git remote get-url origin)" | sed 's|.*github\.com[:\/]\(.*\)\.git|\1|')
 if git rev-parse "v$VERSION" >/dev/null 2>&1; then
   git tag -d "v$VERSION"
   git push origin ":refs/tags/v$VERSION" 2>/dev/null || true
@@ -43,5 +44,4 @@ git tag "v$VERSION"
 git push origin "v$VERSION"
 echo "✓ Tagged and pushed v$VERSION"
 
-echo ""
-echo "Release CI: https://github.com/$(git remote get-url origin | sed 's/.*github\.com[:\/]\(.*\)\.git/\1/')/actions"
+echo "Release CI: https://github.com/${REPO}/actions"

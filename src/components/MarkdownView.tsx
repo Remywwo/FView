@@ -89,7 +89,8 @@ async function imageDataUri(absPath: string): Promise<string | null> {
     const bytes = await readFile(absPath);
     const mime = MIME[ext(absPath)] || "image/png";
     return `data:${mime};base64,${bytesToBase64(bytes)}`;
-  } catch {
+  } catch (e: any) {
+    console.error("[md-img] readFile failed for:", absPath, e?.message || e);
     return null;
   }
 }

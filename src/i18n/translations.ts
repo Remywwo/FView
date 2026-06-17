@@ -60,7 +60,7 @@ export const translations = {
       goTo: "Go to",
       gotoPlaceholder: "—",
       gotoTitle: "Go to page (⌘G)",
-      outline: "Outline",
+      outline: "Table of contents",
       noOutline: "No outline",
       loadingOutline: "Loading…",
     },

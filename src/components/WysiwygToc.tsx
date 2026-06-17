@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/hooks/useI18n";
 
 interface Heading {
   depth: number;
@@ -8,6 +9,7 @@ interface Heading {
 }
 
 export function WysiwygToc({ container, hidden }: { container: HTMLElement | null; hidden?: boolean }) {
+  const { t } = useI18n();
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [open, setOpen] = useState(false);
   const hideTimer = useRef<number | null>(null);
@@ -56,7 +58,7 @@ export function WysiwygToc({ container, hidden }: { container: HTMLElement | nul
       {/* always-visible floating toggle on right edge */}
       <div
         onClick={() => { open ? setOpen(false) : show(); }}
-        title={open ? "Close TOC" : "Table of Contents"}
+        title={open ? "Close TOC" : t("md.toc")}
         style={{
           position: "absolute", top: "50%", right: 0, transform: "translateY(-50%)",
           width: 18, height: 32, cursor: "pointer", zIndex: 9,
@@ -104,7 +106,7 @@ export function WysiwygToc({ container, hidden }: { container: HTMLElement | nul
         style={{ position: "absolute", top: 0, right: 0, height: "100%", width: 240, background: "var(--md-bg)", borderLeft: "1px solid var(--md-border)", boxShadow: "-4px 0 18px rgba(0,0,0,0.06)", transform: open ? "translateX(0)" : "translateX(100%)", transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)", zIndex: 10, pointerEvents: open ? "auto" : "none" }}
       >
         <div style={{ height: "100%", overflow: "auto", padding: "0.9rem 0.4rem 0.9rem 0.6rem", fontSize: 13, lineHeight: 1.4 }}>
-          <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--md-muted)", padding: "0 0.5rem", marginBottom: "0.5rem", fontWeight: 600 }}>TOC</div>
+          <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--md-muted)", padding: "0 0.5rem", marginBottom: "0.5rem", fontWeight: 600 }}>{t("md.toc")}</div>
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {headings.map((h) => (
               <li key={h.id || h.text} style={{ margin: 0 }}>

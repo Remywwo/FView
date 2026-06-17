@@ -8,10 +8,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "tauri": "node scripts/with-path.mjs tauri",
-    "tauri:dev": "node scripts/with-path.mjs tauri dev",
-    "tauri:build": "node scripts/with-path.mjs tauri build",
-    "tauri:ci": "tauri",
+    "tauri": "node scripts/with-path.mjs npx @tauri-apps/cli",
+    "tauri:dev": "node scripts/with-path.mjs npx @tauri-apps/cli dev",
+    "tauri:build": "node scripts/with-path.mjs npx @tauri-apps/cli build",
+    "tauri:ci": "npx @tauri-apps/cli",
     "release": "bash scripts/release.sh"
   },
   "dependencies": {

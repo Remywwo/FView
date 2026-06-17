@@ -215,10 +215,10 @@ html, body, #root {
 
 /* ByteMD dropdowns */
 .bytemd-dropdown {
-  background: var(--md-bg);
-  border: 1px solid var(--md-border);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 .bytemd-dropdown-title {
   color: var(--md-muted);
@@ -234,6 +234,9 @@ html, body, #root {
 .tippy-box[data-theme~=light-border] {
   background-color: var(--md-bg) !important;
   color: var(--md-fg) !important;
+}
+[data-tippy-root] {
+  box-sizing: content-box;
 }
 
 /* ByteMD status bar */
@@ -285,11 +288,6 @@ html, body, #root {
 .bytemd .CodeMirror {
   background: var(--md-bg) !important;
   color: var(--md-fg) !important;
-}
-.bytemd .CodeMirror-linenumber { color: var(--md-muted) !important; }
-.bytemd .CodeMirror-gutters {
-  background: var(--md-code-bg) !important;
-  border-color: var(--md-border) !important;
 }
 .bytemd .CodeMirror-cursor { border-color: var(--md-fg) !important; }
 .bytemd .CodeMirror-selected { background: #264f78 !important; }

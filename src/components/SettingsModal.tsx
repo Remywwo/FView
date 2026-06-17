@@ -321,6 +321,12 @@ function localizedFontLabel(value: FontFamily, t: (k: string) => string): string
     case "sans": return t("settings.fontSans");
     case "serif": return t("settings.fontSerif");
     case "mono": return t("settings.fontMono");
+    case "system-ui": return t("settings.fontSystemUI");
+    case "humanist": return t("settings.fontHumanist");
+    case "georgia": return t("settings.fontGeorgia");
+    case "menlo": return t("settings.fontMenlo");
+    case "newspaper": return t("settings.fontNewspaper");
+    case "rounded": return t("settings.fontRounded");
   }
 }
 

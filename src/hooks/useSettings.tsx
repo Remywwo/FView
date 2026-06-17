@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type FontFamily = "system" | "sans" | "serif" | "mono";
+export type FontFamily = "system" | "sans" | "serif" | "mono" | "system-ui" | "humanist" | "georgia" | "menlo" | "newspaper" | "rounded";
 export type FontSize = number;
 export type LineHeight = number;
 
@@ -70,6 +70,11 @@ export interface FontOption {
 export const FONT_FAMILIES: FontOption[] = [
   { value: "system", label: "System" },
   {
+    value: "system-ui",
+    label: "System UI",
+    stack: 'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif',
+  },
+  {
     value: "sans",
     label: "Sans",
     stack: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif',
@@ -80,9 +85,34 @@ export const FONT_FAMILIES: FontOption[] = [
     stack: 'Georgia, Cambria, "Times New Roman", Times, serif',
   },
   {
+    value: "georgia",
+    label: "Georgia",
+    stack: 'Georgia, "Times New Roman", "Noto Serif", "Songti SC", serif',
+  },
+  {
+    value: "newspaper",
+    label: "Newspaper",
+    stack: '"Charter", "Bitstream Charter", "Sitka Text", Cambria, serif',
+  },
+  {
     value: "mono",
     label: "Monospace",
     stack: '"JetBrains Mono", "SF Mono", Menlo, Monaco, Consolas, monospace',
+  },
+  {
+    value: "menlo",
+    label: "Menlo",
+    stack: 'Menlo, "SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace',
+  },
+  {
+    value: "humanist",
+    label: "Humanist",
+    stack: '"Optima", "Gill Sans", "Sitka UI", "Noto Sans", Candara, sans-serif',
+  },
+  {
+    value: "rounded",
+    label: "Rounded",
+    stack: '"Nunito", "Comfortaa", "Varela Round", "M PLUS Rounded 1c", sans-serif',
   },
 ];
 

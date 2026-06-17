@@ -182,15 +182,18 @@ export function MarkdownPreview({ file, setContent }: Props) {
     return () => observer.disconnect();
   }, []);
 
-  // ── Increase CodeMirror viewport margin (fix blank flicker) ──────────
+  // ── Increase CodeMirror viewport margin + enable line numbers ──────
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const observer = new MutationObserver(() => {
       const cm = (el.querySelector(".CodeMirror") as any)?.CodeMirror;
-      if (cm && cm.defaults && cm.defaults.viewportMargin < 500) {
-        cm.defaults.viewportMargin = 500;
+      if (cm) {
+        if (cm.defaults && cm.defaults.viewportMargin < 500) {
+          cm.defaults.viewportMargin = 500;
+        }
+        cm.setOption("lineNumbers", true);
         observer.disconnect();
       }
     });

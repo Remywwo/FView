@@ -53,34 +53,34 @@ export function WysiwygToc({ container, hidden }: { container: HTMLElement | nul
 
   return (
     <>
-      {/* always-visible floating tab on right edge */}
+      {/* always-visible floating toggle on right edge */}
       <div
         onClick={() => { open ? setOpen(false) : show(); }}
         title={open ? "Close TOC" : "Table of Contents"}
         style={{
           position: "absolute", top: "50%", right: 0, transform: "translateY(-50%)",
-          writingMode: "vertical-rl", textOrientation: "mixed",
-          padding: "10px 6px", cursor: "pointer", zIndex: 9,
-          background: "var(--md-code-bg)", color: "var(--md-muted)",
-          border: "1px solid var(--md-border)", borderRight: "none",
-          borderRadius: "6px 0 0 6px", fontSize: 11, fontWeight: 500,
-          letterSpacing: "0.05em", userSelect: "none",
-          opacity: 0.6, transition: "opacity 0.15s, color 0.15s, background 0.15s",
+          width: 18, height: 32, cursor: "pointer", zIndex: 9,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "transparent", color: "var(--md-muted)",
+          border: "none",
+          opacity: 0.6, transition: "opacity 0.15s",
         }}
         onMouseEnter={(e) => {
-          if (!open) {
-            (e.target as HTMLElement).style.opacity = "1";
-            (e.target as HTMLElement).style.color = "var(--md-link)";
-          }
+          (e.target as HTMLElement).style.opacity = "1";
         }}
         onMouseLeave={(e) => {
-          if (!open) {
-            (e.target as HTMLElement).style.opacity = "0.6";
-            (e.target as HTMLElement).style.color = "var(--md-muted)";
-          }
+          if (!open) (e.target as HTMLElement).style.opacity = "0.6";
         }}
       >
-        {open ? "×" : "TOC"}
+        {open ? (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        )}
       </div>
 
       {/* hover handle */}

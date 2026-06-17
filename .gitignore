@@ -13,3 +13,4 @@ src-tauri/gen
 vite.config.d.ts
 vite.config.js
 
+docs/assets/md-preview.gif

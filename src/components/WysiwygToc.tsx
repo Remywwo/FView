@@ -4,48 +4,34 @@ interface Heading {
   depth: number;
   text: string;
   id: string;
+  el: HTMLElement;
 }
 
-export function WysiwygToc({ container, markdown }: { container: HTMLElement | null; markdown: string }) {
+export function WysiwygToc({ container, hidden }: { container: HTMLElement | null; hidden?: boolean }) {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [open, setOpen] = useState(false);
   const hideTimer = useRef<number | null>(null);
 
-  // Scan headings from DOM (works in preview/split); fall back to markdown parsing (write mode)
   useEffect(() => {
     if (!container) return;
     const scan = () => {
-      // Try full-container scan (works for both preview and hidden-by-display-none elements)
-      const hs = container.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6");
-      if (hs.length > 0) {
-        setHeadings(
-          Array.from(hs).map((el) => ({
-            depth: parseInt(el.tagName[1]),
-            text: el.textContent || "",
-            id: el.id,
-          }))
-        );
-      } else {
-        // Fallback: parse from markdown source
-        const re = /^(#{1,6})\s+(.+)$/gm;
-        const result: Heading[] = [];
-        let m: RegExpExecArray | null;
-        while ((m = re.exec(markdown)) !== null) {
-          const text = m[2].trim();
-          result.push({
-            depth: m[1].length,
-            text,
-            id: text.toLowerCase().replace(/\s+/g, "-"),
-          });
-        }
-        setHeadings(result);
-      }
+      const hs = container.querySelectorAll<HTMLElement>(
+        ".markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4, .markdown-body h5, .markdown-body h6"
+      );
+      setHeadings(
+        Array.from(hs).map((el) => ({
+          depth: parseInt(el.tagName[1]),
+          text: el.textContent || "",
+          id: el.id,
+          el,
+        }))
+      );
     };
     scan();
     const obs = new MutationObserver(scan);
     obs.observe(container, { childList: true, subtree: true });
     return () => obs.disconnect();
-  }, [container, markdown]);
+  }, [container]);
 
   const show = () => {
     if (hideTimer.current !== null) { clearTimeout(hideTimer.current); hideTimer.current = null; }
@@ -56,15 +42,14 @@ export function WysiwygToc({ container, markdown }: { container: HTMLElement | n
     hideTimer.current = window.setTimeout(() => setOpen(false), 300);
   };
 
-  const scrollTo = (id: string) => {
-    if (!container) return;
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+  const scrollTo = (el: HTMLElement) => {
+    const scrollParent = container?.querySelector(".bytemd-preview");
+    if (!scrollParent) return;
+    const offset = el.getBoundingClientRect().top - scrollParent.getBoundingClientRect().top;
+    scrollParent.scrollBy({ top: offset - 16, behavior: "smooth" });
   };
 
-  if (headings.length === 0) return null;
+  if (hidden || headings.length === 0) return null;
 
   return (
     <>
@@ -93,7 +78,7 @@ export function WysiwygToc({ container, markdown }: { container: HTMLElement | n
             {headings.map((h) => (
               <li key={h.id || h.text} style={{ margin: 0 }}>
                 <button
-                  onClick={() => scrollTo(h.id)}
+                  onClick={() => { scrollTo(h.el); }}
                   style={{
                     display: "block", width: "100%", textAlign: "left",
                     padding: "0.3rem 0.5rem", paddingLeft: `${0.5 + (h.depth - 1) * 0.85}rem`,

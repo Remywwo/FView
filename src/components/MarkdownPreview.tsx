@@ -254,7 +254,7 @@ export function MarkdownPreview({ file, setContent }: Props) {
           plugins={plugins}
           onChange={(v) => setContent(v)}
         />
-        <WysiwygToc container={tocContainer} markdown={file.content} />
+        <WysiwygToc container={tocContainer} hidden={viewMode === "write"} />
       </div>
     </div>
   );

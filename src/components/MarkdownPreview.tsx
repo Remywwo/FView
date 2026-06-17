@@ -13,6 +13,7 @@ import type { LoadedFile } from "@/hooks/useFileLoader";
 import { useSettings } from "@/hooks/useSettings";
 import { useI18n } from "@/hooks/useI18n";
 import { open as openExternal } from "@tauri-apps/plugin-shell";
+import { WysiwygToc } from "@/components/WysiwygToc";
 
 interface Props {
   file: LoadedFile;
@@ -151,6 +152,7 @@ export function MarkdownPreview({ file, setContent }: Props) {
   const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_KEY) || "default");
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const containerRef = useRef<HTMLDivElement>(null);
+  const [tocContainer, setTocContainer] = useState<HTMLElement | null>(null);
 
   const MODES: { key: ViewMode; label: string }[] = [
     { key: "split", label: t("md.split") },
@@ -197,76 +199,6 @@ export function MarkdownPreview({ file, setContent }: Props) {
     };
     el.addEventListener("click", onClick);
     return () => el.removeEventListener("click", onClick);
-  }, []);
-
-  // ── TOC hover handle ──────────────────────────────────────────────────
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    let hideTimer: number | null = null;
-    let open = false;
-
-    const findTocBtn = () =>
-      el.querySelector<HTMLElement>(".bytemd-toolbar-right .bytemd-toolbar-icon") as HTMLElement | null;
-
-    const show = () => {
-      if (open) return;
-      open = true;
-      findTocBtn()?.click();
-    };
-    const hide = () => {
-      if (!open) return;
-      open = false;
-      findTocBtn()?.click();
-    };
-
-    // Create hover handle
-    const handle = document.createElement("div");
-    handle.style.cssText =
-      "position:absolute;top:0;right:0;height:100%;width:18px;cursor:pointer;z-index:19;" +
-      "display:flex;align-items:center;justify-content:center;color:var(--md-muted);" +
-      "background:transparent;border-left:1px solid transparent;transition:opacity 0.15s;opacity:0";
-    handle.title = "Table of Contents";
-    handle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>`;
-    handle.addEventListener("mouseenter", () => {
-      show();
-      if (hideTimer !== null) { clearTimeout(hideTimer); hideTimer = null; }
-    });
-    handle.addEventListener("mouseleave", () => {
-      hideTimer = window.setTimeout(hide, 300);
-    });
-    el.appendChild(handle);
-
-    // Show handle on hover near right edge; track sidebar for hover keep-open
-    const showHandle = () => { handle.style.opacity = "1"; };
-    const hideHandle = () => { if (!open) handle.style.opacity = "0"; };
-    el.addEventListener("mousemove", (e: MouseEvent) => {
-      const rect = el.getBoundingClientRect();
-      (e.clientX > rect.right - 44) ? showHandle() : hideHandle();
-    });
-    el.addEventListener("mouseleave", hideHandle);
-
-    // Keep sidebar open while hovering it
-    const observer = new MutationObserver(() => {
-      const sidebar = el.querySelector(".bytemd-sidebar");
-      if (sidebar) {
-        sidebar.addEventListener("mouseenter", () => {
-          if (hideTimer !== null) { clearTimeout(hideTimer); hideTimer = null; }
-        });
-        sidebar.addEventListener("mouseleave", () => {
-          hideTimer = window.setTimeout(hide, 300);
-        });
-      }
-    });
-    observer.observe(el, { childList: true, subtree: true });
-
-    return () => {
-      observer.disconnect();
-      if (hideTimer !== null) clearTimeout(hideTimer);
-      handle.remove();
-    };
   }, []);
 
   useEffect(() => {
@@ -316,12 +248,13 @@ export function MarkdownPreview({ file, setContent }: Props) {
       </div>
 
       {/* ByteMD editor fills remaining space */}
-      <div ref={containerRef} className="flex-1" style={{ position: "relative", minHeight: 0 }}>
+      <div ref={(el) => { (containerRef as any).current = el; setTocContainer(el); }} className="flex-1" style={{ position: "relative", minHeight: 0 }}>
         <Editor
           value={file.content}
           plugins={plugins}
           onChange={(v) => setContent(v)}
         />
+        <WysiwygToc container={tocContainer} />
       </div>
     </div>
   );

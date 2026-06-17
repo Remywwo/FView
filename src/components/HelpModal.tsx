@@ -82,10 +82,11 @@ export function HelpModal({ open, onClose }: Props) {
               <tr><th>Shortcut</th><th>{lang === "zh" ? "动作" : "Action"}</th></tr>
             </thead>
             <tbody>
-              <tr><td><kbd>⌘P</kbd></td><td>{t("help.mdToggle")}</td></tr>
+              <tr><td><kbd>⌘P</kbd></td><td>{lang === "zh" ? "切换视图：Split → Write → Preview" : "Cycle view: Split → Write → Preview"}</td></tr>
             </tbody>
           </table>
           <p>{t("help.mdHint")}</p>
+          <p>{t("help.mdPlugins")}</p>
 
           <h3>{t("help.hPdf")}</h3>
           <table>

@@ -107,6 +107,7 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+          tauriScript: npx @tauri-apps/cli
 
   release-please:
     name: Open release (if no manual one)

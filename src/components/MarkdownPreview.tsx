@@ -215,16 +215,17 @@ export function MarkdownPreview({ file, setContent }: Props) {
     const el = containerRef.current;
     if (!el) return;
 
-    // ByteMD's CodeMirror may need a refresh after first layout settles.
-    const t1 = setTimeout(() => {
+    const refresh = () => {
       const cm = (el.querySelector(".CodeMirror") as any)?.CodeMirror;
       cm?.refresh();
-    }, 100);
-    const t2 = setTimeout(() => {
-      const cm = (el.querySelector(".CodeMirror") as any)?.CodeMirror;
-      cm?.refresh();
-    }, 500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    };
+    const t1 = setTimeout(refresh, 100);
+    const t2 = setTimeout(refresh, 500);
+    window.addEventListener("resize", refresh);
+    return () => {
+      clearTimeout(t1); clearTimeout(t2);
+      window.removeEventListener("resize", refresh);
+    };
   }, [fileDir]);
 
   // Load theme CSS

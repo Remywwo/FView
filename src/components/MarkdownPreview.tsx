@@ -15,6 +15,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { open as openExternal } from "@tauri-apps/plugin-shell";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { WysiwygToc } from "@/components/WysiwygToc";
+import type { BytemdPlugin } from "bytemd";
 
 const zhLocale = {
   bold: "粗体", boldText: "粗体文本",
@@ -181,30 +182,31 @@ export function MarkdownPreview({ file, setContent }: Props) {
   const editorConfig = useMemo(() => ({}), []);
   const locale = useMemo(() => (lang === "zh" ? zhLocale : undefined), [lang]);
   const fileDir = useMemo(() => file.path.replace(/[\\/][^\\/]*$/, ""), [file.path]);
+
+  const localImagePlugin = useMemo((): BytemdPlugin => ({
+    rehype: (processor) => processor.use(() => (tree: any) => {
+      function walk(node: any) {
+        if (node.tagName === "img" && node.properties?.src) {
+          const src: string = node.properties.src;
+          if (src && !src.startsWith("http") && !src.startsWith("data:") && !src.startsWith("asset:") && !src.startsWith("/")) {
+            let rel = src;
+            try { rel = decodeURIComponent(rel); } catch {}
+            rel = rel.replace(/^\.[/\\]/, "");
+            const sep = fileDir.includes("\\") ? "\\" : "/";
+            const abs = rel.split(/[\\/]/).reduce((a, s) => a + sep + s, fileDir);
+            node.properties.src = convertFileSrc(abs);
+          }
+        }
+        if (node.children) for (const c of node.children) walk(c);
+      }
+      walk(tree);
+    }),
+  }), [fileDir]);
+
   const plugins = useMemo(() => [
     gfm(), highlight(), frontmatter(), gemoji(), math(), mediumZoom(), mermaid(),
-  ], []);
-
-  // ── Local image: remark-rehype handler (before browser sees URLs) ──
-
-  const remarkRehype = useMemo(() => ({
-    handlers: {
-      image(h: any, node: any) {
-        let url: string = node.url || "";
-        if (url && !url.startsWith("http") && !url.startsWith("data:") && !url.startsWith("asset:") && !url.startsWith("/")) {
-          let rel = url;
-          try { rel = decodeURIComponent(rel); } catch {}
-          rel = rel.replace(/^\.[/\\]/, "");
-          const sep = (fileDir || "").includes("\\") ? "\\" : "/";
-          const abs = rel.split(/[\\/]/).reduce((acc, s) => acc + sep + s, fileDir);
-          url = convertFileSrc(abs);
-        }
-        const props: Record<string, any> = { src: url, alt: node.alt || "" };
-        if (node.title) props.title = node.title;
-        return h(node, "img", props);
-      },
-    },
-  }), [fileDir]);
+    localImagePlugin,
+  ], [localImagePlugin]);
 
   const MODES: { key: ViewMode; label: string }[] = [
     { key: "split", label: t("md.split") },
@@ -342,7 +344,6 @@ export function MarkdownPreview({ file, setContent }: Props) {
           plugins={plugins}
           editorConfig={editorConfig}
           locale={locale}
-          remarkRehype={remarkRehype}
           onChange={(v) => setContent(v)}
         />
         <WysiwygToc container={tocContainer} hidden={viewMode === "write"} />

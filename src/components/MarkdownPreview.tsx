@@ -13,9 +13,23 @@ import type { LoadedFile } from "@/hooks/useFileLoader";
 import { useSettings, getFontStack } from "@/hooks/useSettings";
 import { useI18n } from "@/hooks/useI18n";
 import { open as openExternal } from "@tauri-apps/plugin-shell";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { readFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { WysiwygToc } from "@/components/WysiwygToc";
+
+const MIME: Record<string, string> = {
+  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
+  gif: "image/gif", svg: "image/svg+xml", webp: "image/webp",
+  bmp: "image/bmp", ico: "image/x-icon",
+};
+
+function bytesToBase64(bytes: Uint8Array): string {
+  const CHUNK = 0x8000;
+  const parts: string[] = [];
+  for (let i = 0; i < bytes.length; i += CHUNK)
+    parts.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK)));
+  return btoa(parts.join(""));
+}
 
 const zhLocale = {
   bold: "粗体", boldText: "粗体文本",
@@ -196,19 +210,22 @@ export function MarkdownPreview({ file, setContent }: Props) {
 
     const process = (img: HTMLImageElement) => {
       const raw = img.getAttribute("src") || "";
-      // Skip already-processed, absolute URLs, data URIs
       if (!raw || raw.startsWith("http") || raw.startsWith("data:") || raw.startsWith("asset:") || raw.startsWith("blob:")) return;
       if (loadedSrcs.current.has(raw)) return;
       loadedSrcs.current.add(raw);
 
       let rel = raw;
       try { rel = decodeURIComponent(rel); } catch {}
-      rel = rel.replace(/^\.[/\\]/, ""); // strip leading ./ or .\
+      rel = rel.replace(/^\.[/\\]/, "");
       const segments = rel.split(/[\\/]/);
 
-      join(fileDir, ...segments).then((abs) => {
-        img.src = convertFileSrc(abs);
-      }).catch(() => {});
+      join(fileDir, ...segments).then((abs) =>
+        readFile(abs).then((bytes) => {
+          const ext = abs.slice(abs.lastIndexOf(".") + 1).toLowerCase();
+          const mime = MIME[ext] || "image/png";
+          img.src = `data:${mime};base64,${bytesToBase64(bytes)}`;
+        }).catch(() => {})
+      ).catch(() => {});
     };
 
     const scan = () => {

@@ -185,58 +185,26 @@ export function MarkdownPreview({ file, setContent }: Props) {
     gfm(), highlight(), frontmatter(), gemoji(), math(), mediumZoom(), mermaid(),
   ], []);
 
-  // ── Local image: intercept innerHTML before browser loads images ───
+  // ── Local image: remark-rehype handler (before browser sees URLs) ──
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || !fileDir) return;
-
-    const proto = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "innerHTML");
-    if (!proto?.set) return;
-
-    const patch = (body: HTMLElement) => {
-      Object.defineProperty(body, "innerHTML", {
-        set(html: string) {
-          if (typeof html !== "string") { proto.set!.call(this, html); return; }
-          const result = html.replace(
-            /(<img\b[^>]*\bsrc\s*=\s*)"([^"]+)"([^>]*>)/gi,
-            (_m: string, pre: string, src: string, post: string) => {
-              if (src.startsWith("http") || src.startsWith("data:") || src.startsWith("asset:") || src.startsWith("/")) {
-                return _m;
-              }
-              let rel = src;
-              try { rel = decodeURIComponent(rel); } catch {}
-              rel = rel.replace(/^\.[/\\]/, "");
-              const sep = fileDir.includes("\\") ? "\\" : "/";
-              const abs = rel.split(/[\\/]/).reduce((acc, s) => acc + sep + s, fileDir);
-              return pre + `"${convertFileSrc(abs)}"` + post;
-            }
-          );
-          proto.set!.call(this, result);
-        },
-        get() { return proto.get!.call(this); },
-        configurable: true,
-      });
-      // Re-process if content was already set before patching
-      if (body.innerHTML) {
-        const html = body.innerHTML;
-        body.innerHTML = html;
-      }
-    };
-
-    const scan = () => {
-      const body = el.querySelector<HTMLElement>(".markdown-body");
-      if (body) { patch(body); return true; }
-      return false;
-    };
-
-    if (scan()) return;
-    const obs = new MutationObserver((_m, o) => {
-      if (scan()) o.disconnect();
-    });
-    obs.observe(el, { childList: true, subtree: true });
-    return () => obs.disconnect();
-  }, [fileDir]);
+  const remarkRehype = useMemo(() => ({
+    handlers: {
+      image(h: any, node: any) {
+        let url: string = node.url || "";
+        if (url && !url.startsWith("http") && !url.startsWith("data:") && !url.startsWith("asset:") && !url.startsWith("/")) {
+          let rel = url;
+          try { rel = decodeURIComponent(rel); } catch {}
+          rel = rel.replace(/^\.[/\\]/, "");
+          const sep = (fileDir || "").includes("\\") ? "\\" : "/";
+          const abs = rel.split(/[\\/]/).reduce((acc, s) => acc + sep + s, fileDir);
+          url = convertFileSrc(abs);
+        }
+        const props: Record<string, any> = { src: url, alt: node.alt || "" };
+        if (node.title) props.title = node.title;
+        return h(node, "img", props);
+      },
+    },
+  }), [fileDir]);
 
   const MODES: { key: ViewMode; label: string }[] = [
     { key: "split", label: t("md.split") },
@@ -352,11 +320,12 @@ export function MarkdownPreview({ file, setContent }: Props) {
 
       {/* ByteMD editor fills remaining space */}
       <div ref={(el) => { (containerRef as any).current = el; setTocContainer(el); }} className="flex-1" style={{ position: "relative", minHeight: 0 }}>
-        <Editor
+         <Editor
           value={file.content}
           plugins={plugins}
           editorConfig={editorConfig}
           locale={locale}
+          remarkRehype={remarkRehype}
           onChange={(v) => setContent(v)}
         />
         <WysiwygToc container={tocContainer} hidden={viewMode === "write"} />

@@ -139,7 +139,8 @@ html, body, #root {
 .bytemd-editor .CodeMirror .CodeMirror-lines {
   max-width: 860px;
   margin: 0 auto;
-  padding: 40px 0 80px;
+  padding-top: 40px;
+  padding-bottom: 80px;
 }
 
 /* Preview: centered, generous padding */

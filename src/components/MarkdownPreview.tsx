@@ -216,6 +216,11 @@ export function MarkdownPreview({ file, setContent }: Props) {
         get() { return proto.get!.call(this); },
         configurable: true,
       });
+      // Re-process if content was already set before patching
+      if (body.innerHTML) {
+        const html = body.innerHTML;
+        body.innerHTML = html;
+      }
     };
 
     const scan = () => {

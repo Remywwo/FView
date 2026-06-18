@@ -319,6 +319,14 @@ html, body, #root {
   color: var(--md-fg) !important;
 }
 .bytemd .CodeMirror-cursor { border-color: var(--md-fg) !important; }
+/* Active line highlight */
+.bytemd .CodeMirror-activeline-background { background: var(--md-code-bg) !important; }
+/* Line numbers */
+.bytemd .CodeMirror-linenumber { color: var(--md-muted) !important; }
+.bytemd .CodeMirror-gutters {
+  background: var(--md-code-bg) !important;
+  border-color: var(--md-border) !important;
+}
 .bytemd .CodeMirror-selected { background: var(--md-code-bg) !important; }
 .bytemd .CodeMirror-focused .CodeMirror-selected { background: var(--md-border) !important; }
 .bytemd .CodeMirror-activeline-background { background: var(--md-code-bg) !important; }

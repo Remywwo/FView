@@ -13,10 +13,9 @@ import type { LoadedFile } from "@/hooks/useFileLoader";
 import { useSettings, getFontStack } from "@/hooks/useSettings";
 import { useI18n } from "@/hooks/useI18n";
 import { open as openExternal } from "@tauri-apps/plugin-shell";
-import { readFile } from "@tauri-apps/plugin-fs";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { join } from "@tauri-apps/api/path";
 import { WysiwygToc } from "@/components/WysiwygToc";
-import type { BytemdPlugin } from "bytemd";
 
 const zhLocale = {
   bold: "粗体", boldText: "粗体文本",
@@ -86,48 +85,7 @@ function loadTheme(name: string) {
   document.head.appendChild(link);
 }
 
-// ── local image plugin ────────────────────────────────────────────────
-
-const MIME: Record<string, string> = {
-  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
-  gif: "image/gif", svg: "image/svg+xml", webp: "image/webp",
-  bmp: "image/bmp", ico: "image/x-icon",
-};
-
-function bytesToBase64(bytes: Uint8Array): string {
-  const CHUNK = 0x8000;
-  const parts: string[] = [];
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    parts.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK)));
-  }
-  return btoa(parts.join(""));
-}
-
-const loadedImages = new Set<string>();
-
-function localImagePlugin(fileDir?: string): BytemdPlugin {
-  return {
-    viewerEffect({ markdownBody }) {
-      if (!fileDir) return;
-      const imgs = markdownBody.querySelectorAll<HTMLImageElement>("img[src]");
-      for (const img of imgs) {
-        const src = img.getAttribute("src") || "";
-        if (src.startsWith("http") || src.startsWith("data:") || src.startsWith("/") || src.startsWith("asset:")) continue;
-        if (loadedImages.has(src)) continue;
-        loadedImages.add(src);
-        const rel = (() => { let r = src; try { r = decodeURIComponent(r); } catch {}; return r.replace(/^\.[/\\]/, ""); })();
-        const segments = rel.split(/[\\/]/);
-        join(fileDir, ...segments).then((abs) =>
-          readFile(abs).then((bytes) => {
-            const ext = abs.slice(abs.lastIndexOf(".") + 1).toLowerCase();
-            const mime = MIME[ext] || "image/png";
-            img.src = `data:${mime};base64,${bytesToBase64(bytes)}`;
-          }).catch(() => {})
-        ).catch(() => {});
-      }
-    },
-  };
-}
+// ── plugins ──────────────────────────────────────────────────────────
 
 // ── mode button ──────────────────────────────────────────────────────
 
@@ -226,8 +184,42 @@ export function MarkdownPreview({ file, setContent }: Props) {
   const fileDir = useMemo(() => file.path.replace(/[\\/][^\\/]*$/, ""), [file.path]);
   const plugins = useMemo(() => [
     gfm(), highlight(), frontmatter(), gemoji(), math(), mediumZoom(), mermaid(),
-    localImagePlugin(fileDir),
-  ], [fileDir]);
+  ], []);
+
+  // ── Local image loading via asset:// protocol ───────────────────────
+
+  const loadedSrcs = useRef(new Set<string>());
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !fileDir) return;
+
+    const process = (img: HTMLImageElement) => {
+      const raw = img.getAttribute("src") || "";
+      // Skip already-processed, absolute URLs, data URIs
+      if (!raw || raw.startsWith("http") || raw.startsWith("data:") || raw.startsWith("asset:") || raw.startsWith("blob:")) return;
+      if (loadedSrcs.current.has(raw)) return;
+      loadedSrcs.current.add(raw);
+
+      let rel = raw;
+      try { rel = decodeURIComponent(rel); } catch {}
+      rel = rel.replace(/^\.[/\\]/, ""); // strip leading ./ or .\
+      const segments = rel.split(/[\\/]/);
+
+      join(fileDir, ...segments).then((abs) => {
+        img.src = convertFileSrc(abs);
+      }).catch(() => {});
+    };
+
+    const scan = () => {
+      el.querySelectorAll<HTMLImageElement>("img[src]").forEach(process);
+    };
+
+    scan();
+    const obs = new MutationObserver(() => scan());
+    obs.observe(el, { childList: true, subtree: true });
+    return () => obs.disconnect();
+  }, [fileDir]);
 
   const MODES: { key: ViewMode; label: string }[] = [
     { key: "split", label: t("md.split") },

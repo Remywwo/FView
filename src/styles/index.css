@@ -320,7 +320,9 @@ html, body, #root {
 }
 .bytemd .CodeMirror-cursor { border-color: var(--md-fg) !important; }
 /* Active line highlight */
-.bytemd .CodeMirror-activeline-background { background: var(--md-code-bg) !important; }
+.bytemd .CodeMirror .activeline {
+  background: var(--md-code-bg) !important;
+}
 /* Line numbers */
 .bytemd .CodeMirror-linenumber { color: var(--md-muted) !important; }
 .bytemd .CodeMirror-gutters {

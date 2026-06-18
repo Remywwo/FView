@@ -179,7 +179,7 @@ export function MarkdownPreview({ file, setContent }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tocContainer, setTocContainer] = useState<HTMLElement | null>(null);
 
-  const editorConfig = useMemo(() => ({ lineNumbers: true, styleActiveLine: true }), []);
+  const editorConfig = useMemo(() => ({ lineNumbers: true }), []);
   const locale = useMemo(() => (lang === "zh" ? zhLocale : undefined), [lang]);
   const fileDir = useMemo(() => file.path.replace(/[\\/][^\\/]*$/, ""), [file.path]);
 
@@ -240,6 +240,42 @@ export function MarkdownPreview({ file, setContent }: Props) {
       cm?.refresh();
     }, 50);
   }, [viewMode]);
+
+  // ── Active line highlight (CodeMirror 5 may lack the addon) ──────────
+
+  const activeLineRef = useRef<any>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new MutationObserver(() => {
+      const cm = (el.querySelector(".CodeMirror") as any)?.CodeMirror;
+      if (!cm || activeLineRef.current === cm) return;
+      // Clean up old instance
+      if (activeLineRef.current) {
+        activeLineRef.current.off("cursorActivity");
+      }
+      activeLineRef.current = cm;
+      // Highlight the current line on cursor activity
+      cm.on("cursorActivity", () => {
+        const cur = cm.getCursor();
+        cm.removeLineClass(activeLineRef.current?._activeLine, "background", "activeline");
+        const line = cm.addLineClass(cur.line, "background", "activeline");
+        activeLineRef.current._activeLine = line;
+      });
+      // Fire once on init
+      cm.off("cursorActivity");
+      const cur = cm.getCursor();
+      activeLineRef.current._activeLine = cm.addLineClass(cur.line, "background", "activeline");
+      cm.on("cursorActivity", () => {
+        const c = cm.getCursor();
+        cm.removeLineClass(activeLineRef.current._activeLine, "background", "activeline");
+        activeLineRef.current._activeLine = cm.addLineClass(c.line, "background", "activeline");
+      });
+    });
+    observer.observe(el, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   // Load theme CSS
   useEffect(() => {

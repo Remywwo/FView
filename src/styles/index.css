@@ -290,7 +290,8 @@ html, body, #root {
   color: var(--md-fg) !important;
 }
 .bytemd .CodeMirror-cursor { border-color: var(--md-fg) !important; }
-.bytemd .CodeMirror-selected { background: #264f78 !important; }
+.bytemd .CodeMirror-selected { background: var(--md-code-bg) !important; }
+.bytemd .CodeMirror-focused .CodeMirror-selected { background: var(--md-border) !important; }
 .bytemd .CodeMirror-activeline-background { background: var(--md-code-bg) !important; }
 .bytemd-editor .CodeMirror pre.CodeMirror-placeholder { color: var(--md-muted) !important; }
 

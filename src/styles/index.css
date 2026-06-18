@@ -118,12 +118,41 @@ html, body, #root {
   flex-direction: column;
   height: auto !important;
   border: none;
+  /* Typora-style: window background */
+  background: var(--md-code-bg);
 }
 
 .bytemd-body {
   flex: 1;
   min-height: 0;
   height: auto !important;
+  overflow: auto;
+}
+
+/* Typora-style: centered content card */
+.bytemd-editor .CodeMirror,
+.bytemd-preview {
+  background: var(--md-bg);
+}
+
+/* Editor: centered, generous padding */
+.bytemd-editor .CodeMirror .CodeMirror-lines {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 0 80px;
+}
+
+/* Preview: centered, generous padding */
+.bytemd-preview .markdown-body {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 4% 80px;
+}
+
+/* CodeMirror line padding */
+.bytemd-editor .CodeMirror pre.CodeMirror-line,
+.bytemd-editor .CodeMirror pre.CodeMirror-line-like {
+  padding: 0 4%;
 }
 
 /* MarkdownPreview mode buttons */
@@ -169,8 +198,8 @@ html, body, #root {
 .bytemd-toolbar-right > :last-child { display: none !important; }
 
 .bytemd-toolbar {
-  background-color: var(--md-bg) !important;
-  border-color: var(--md-border) !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
   padding: 6px 12px !important;
   min-height: 48px;
   display: flex !important;

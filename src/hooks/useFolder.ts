@@ -3,6 +3,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, mkdir, remove, rename } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { scanFolder, type FolderNode } from "@/utils/scanFolder";
+import { useRegisterCommand } from "@/hooks/useCommands";
 
 export function useFolder() {
   const [root, setRoot] = useState<FolderNode | null>(null);
@@ -88,6 +89,17 @@ export function useFolder() {
     setRoot(null);
     setError(null);
   }, []);
+
+  // Register folder commands via the centralized command system.
+  // ⇧⌘O is preserved with capture:true to keep the original
+  // App.tsx behavior of firing before any other listener.
+  useRegisterCommand({
+    id: "folder.openFolder",
+    label: "Open Folder",
+    shortcut: "Mod+Shift+O",
+    capture: true,
+    run: openFolder,
+  });
 
   return { root, loading, error, openFolder, setFolderPath, refresh, createFile, createFolder, deleteItem, renameItem, close };
 }

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { useRegisterCommand } from "@/hooks/useCommands";
 
 export type ThemeMode = "light" | "dark";
 
@@ -36,6 +37,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setDark = useCallback((dark: boolean) => setIsDark(dark), []);
   const toggleTheme = useCallback(() => setIsDark((d) => !d), []);
+
+  // Register theme commands via the centralized command system.
+  // ⌘. toggles dark/light — was inline in App.tsx previously.
+  useRegisterCommand({
+    id: "theme.toggle",
+    label: "Toggle Theme",
+    shortcut: "Mod+.",
+    run: toggleTheme,
+  });
 
   return (
     <ThemeContext.Provider value={{ isDark, setDark, toggleTheme }}>

@@ -53,6 +53,12 @@ const zhLocale = {
 interface Props {
   file: LoadedFile;
   setContent: (s: string) => void;
+  /**
+   * Optional callback invoked whenever the editor selection changes.
+   * Receives the selected text, or an empty string when the selection
+   * is collapsed. Used by the plugin system to expose selection state.
+   */
+  onSelectionChange?: (text: string) => void;
 }
 
 // ── themes ───────────────────────────────────────────────────────────
@@ -171,7 +177,7 @@ type ViewMode = "split" | "write" | "preview";
 
 // ── MarkdownPreview ──────────────────────────────────────────────────
 
-export function MarkdownPreview({ file, setContent }: Props) {
+export function MarkdownPreview({ file, setContent, onSelectionChange }: Props) {
   const { settings } = useSettings();
   const { t, lang } = useI18n();
   const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_KEY) || "default");
@@ -246,6 +252,11 @@ export function MarkdownPreview({ file, setContent }: Props) {
   // ── Active line highlight (CodeMirror 5 may lack the addon) ──────────
 
   const activeLineRef = useRef<any>(null);
+  // Keep the latest onSelectionChange in a ref so the cursorActivity
+  // listener (registered once) always invokes the freshest callback
+  // without needing to re-bind on every render.
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  onSelectionChangeRef.current = onSelectionChange;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -258,12 +269,15 @@ export function MarkdownPreview({ file, setContent }: Props) {
         activeLineRef.current.off("cursorActivity");
       }
       activeLineRef.current = cm;
-      // Highlight current line on cursor activity
+      // Highlight current line on cursor activity, and report selection.
       const mark = () => {
         const cur = cm.getCursor();
         if (activeLineRef.current._activeLine)
           cm.removeLineClass(activeLineRef.current._activeLine, "background", "activeline");
         activeLineRef.current._activeLine = cm.addLineClass(cur.line, "background", "activeline");
+        // Report selection state to the host (PR3a).
+        const cb = onSelectionChangeRef.current;
+        if (cb) cb(cm.getSelection() ?? "");
       };
       cm.on("cursorActivity", mark);
       mark();

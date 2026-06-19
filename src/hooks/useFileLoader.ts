@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
 import { detectFile, type DetectedFile, type FileKind } from "@/utils/fileDetector";
+import { useRegisterCommand } from "@/hooks/useCommands";
 
 export interface LoadedFile {
   path: string;
@@ -189,27 +190,34 @@ export function useFileLoader(): UseFileLoaderApi {
     })();
   }, [loadFromPath]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const meta = e.metaKey || e.ctrlKey;
-      if (meta && e.key.toLowerCase() === "o") {
-        e.preventDefault();
-        open();
-      } else if (meta && e.key.toLowerCase() === "s" && !e.shiftKey) {
-        e.preventDefault();
-        save();
-      } else if (meta && e.key.toLowerCase() === "s" && e.shiftKey) {
-        e.preventDefault();
-        saveAs();
-      } else if (meta && e.key.toLowerCase() === "w") {
-        e.preventDefault();
-        close();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, save, saveAs, close]);
+  // Register file commands via the centralized command system.
+  // Each useRegisterCommand is keyed on the command id, so re-renders
+  // don't churn the registry — the latest `run` closure is read
+  // through the ref inside useRegisterCommand.
+  useRegisterCommand({
+    id: "file.open",
+    label: "Open File",
+    shortcut: "Mod+O",
+    run: open,
+  });
+  useRegisterCommand({
+    id: "file.save",
+    label: "Save",
+    shortcut: "Mod+S",
+    run: save,
+  });
+  useRegisterCommand({
+    id: "file.saveAs",
+    label: "Save As",
+    shortcut: "Mod+Shift+S",
+    run: saveAs,
+  });
+  useRegisterCommand({
+    id: "file.close",
+    label: "Close",
+    shortcut: "Mod+W",
+    run: close,
+  });
 
   return { current, loading, error, open, save, saveAs, loadFromPath, setContent, close, setError };
 }

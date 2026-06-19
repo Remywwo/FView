@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from "react";
+import { useMemo, useRef, type CSSProperties } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, keymap } from "@codemirror/view";
 import { searchKeymap } from "@codemirror/search";
@@ -21,6 +21,12 @@ interface Props {
   setContent: (s: string) => void;
   isDark: boolean;
   readOnly?: boolean;
+  /**
+   * Optional callback invoked whenever the editor selection changes.
+   * Receives the selected text, or an empty string when the selection
+   * is collapsed. Used by the plugin system to expose selection state.
+   */
+  onSelectionChange?: (text: string) => void;
 }
 
 function languageExtension(lang: string | undefined): Extension[] {
@@ -52,9 +58,15 @@ function languageExtension(lang: string | undefined): Extension[] {
   }
 }
 
-export function CodePreview({ file, setContent, isDark, readOnly = false }: Props) {
+export function CodePreview({ file, setContent, isDark, readOnly = false, onSelectionChange }: Props) {
   const { settings } = useSettings();
   const { t } = useI18n();
+
+  // Hold the latest onSelectionChange so the EditorView update listener
+  // (registered once via the extensions array) always calls the freshest
+  // callback without re-binding on every render.
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  onSelectionChangeRef.current = onSelectionChange;
 
   const extensions = useMemo<Extension[]>(
     () => [
@@ -65,6 +77,15 @@ export function CodePreview({ file, setContent, isDark, readOnly = false }: Prop
         ".cm-content": { lineHeight: "var(--cm-line-height)" },
         ".cm-line": { lineHeight: "inherit" },
         ".cm-gutters": { lineHeight: "inherit" },
+      }),
+      // Report selection state to the host (PR3a).
+      EditorView.updateListener.of((viewUpdate) => {
+        if (!viewUpdate.selectionSet) return;
+        const cb = onSelectionChangeRef.current;
+        if (!cb) return;
+        const sel = viewUpdate.state.selection.main;
+        const text = sel.empty ? "" : viewUpdate.state.sliceDoc(sel.from, sel.to);
+        cb(text);
       }),
     ],
     [file.language, settings.lineHeight],

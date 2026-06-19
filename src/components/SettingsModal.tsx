@@ -5,12 +5,15 @@ import {
   MAX_FONT_SIZE,
   MIN_FONT_SIZE,
   useSettings,
+  type AIProviderChoice,
+  type AITargetLang,
   type FontFamily,
   type FontSize,
   type LineHeight,
 } from "@/hooks/useSettings";
 import { useTheme } from "@/hooks/useTheme";
 import { useI18n, type Lang } from "@/hooks/useI18n";
+import { useExtensionContext } from "@/hooks/usePlugin";
 
 interface Props {
   open: boolean;
@@ -22,6 +25,9 @@ export function SettingsModal({ open, onClose }: Props) {
   const { isDark, setDark } = useTheme();
   const { lang, setLang, t } = useI18n();
   const [sizeInput, setSizeInput] = useState(String(settings.fontSize));
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [tab, setTab] = useState<"general" | "ai">("general");
+  const { host } = useExtensionContext();
 
   useEffect(() => {
     if (!open) return;
@@ -67,26 +73,58 @@ export function SettingsModal({ open, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
-      onClick={onClose}
     >
       <div
-        className="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 w-[460px] max-w-[92vw]"
-        style={{ background: "var(--md-bg)" }}
+        className="rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 w-[540px] max-w-[92vw] flex flex-col"
+        style={{ background: "var(--md-bg)", height: "70vh", maxHeight: "min(85vh, 800px)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold" style={{ color: "var(--md-fg)" }}>
-            {t("settings.title")}
-          </h2>
+        {/* Header + tabs */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-3 flex-shrink-0">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setTab("general")}
+              style={{
+                fontSize: 14,
+                fontWeight: tab === "general" ? 600 : 400,
+                color: tab === "general" ? "var(--md-link)" : "var(--md-muted)",
+                borderBottom: tab === "general" ? "2px solid var(--md-link)" : "2px solid transparent",
+                padding: "5px 14px",
+                background: "none",
+                cursor: "pointer",
+              }}
+            >
+              General
+            </button>
+            <button
+              onClick={() => setTab("ai")}
+              style={{
+                fontSize: 14,
+                fontWeight: tab === "ai" ? 600 : 400,
+                color: tab === "ai" ? "var(--md-link)" : "var(--md-muted)",
+                borderBottom: tab === "ai" ? "2px solid var(--md-link)" : "2px solid transparent",
+                padding: "5px 14px",
+                background: "none",
+                cursor: "pointer",
+              }}
+            >
+              AI
+            </button>
+          </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-xl leading-none"
+            className="w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-xl leading-none flex-shrink-0"
             style={{ color: "var(--md-muted)" }}
             aria-label="Close"
           >
             ×
           </button>
         </div>
+
+        {/* Scrollable content */}
+        <div className="px-6 flex-1 min-h-0 overflow-y-auto">
+
+        {tab === "general" && (<>
 
         <div className="mb-5">
           <label
@@ -271,29 +309,154 @@ export function SettingsModal({ open, onClose }: Props) {
           </select>
         </div>
 
-        <div
-          className="rounded-md border p-3"
-          style={{
-            background: "var(--md-code-bg)",
-            borderColor: "var(--md-border)",
-            color: "var(--md-fg)",
-            fontSize: `${liveSize}px`,
-            fontFamily: currentStack,
-            lineHeight: settings.lineHeight,
-          }}
-        >
-          The quick brown fox jumps over the lazy dog.
+        </>)}
+        {tab === "ai" && (<>
+
+        {/* ── AI ── */}
+        <div className="mb-5 pt-1">
+          <div className="mb-4">
+            <label htmlFor="fview-ai-provider" className="block text-xs mb-1.5" style={{ color: "var(--md-muted)" }}>
+              {t("settings.aiProvider")}
+            </label>
+            <select
+              id="fview-ai-provider"
+              value={settings.aiProvider}
+              onChange={(e) => update({ aiProvider: e.target.value as AIProviderChoice })}
+              className="w-full appearance-none cursor-pointer rounded-md border border-gray-200 dark:border-gray-700 pl-3 pr-9 py-2.5 text-sm transition-colors hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              style={{
+                background: "var(--md-bg)",
+                color: "var(--md-fg)",
+                backgroundImage: chevron,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 0.65rem center",
+                backgroundSize: "1.1em 1.1em",
+              }}
+            >
+              <option value="none" style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}>{t("settings.aiNone")}</option>
+              <option value="openai-compat" style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}>{t("settings.aiOpenAICompat")}</option>
+              <option value="anthropic" style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}>{t("settings.aiAnthropic")}</option>
+            </select>
+          </div>
+
+          <div className="mb-4" style={{ position: "relative" }}>
+            <label htmlFor="fview-ai-key" className="block text-xs mb-1.5" style={{ color: "var(--md-muted)" }}>
+              {t("settings.aiApiKey")}
+            </label>
+            <input
+              id="fview-ai-key"
+              type={showApiKey ? "text" : "password"}
+              value={settings.aiApiKey}
+              onChange={(e) => update({ aiApiKey: e.target.value })}
+              placeholder="sk-…"
+              className="w-full rounded-md border border-gray-200 dark:border-gray-700 pl-3 pr-16 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowApiKey((v) => !v)}
+              style={{
+                position: "absolute",
+                right: 1,
+                top: 22,
+                fontSize: 11,
+                padding: "3px 8px",
+                borderRadius: 4,
+                border: "none",
+                background: "transparent",
+                color: "var(--md-muted)",
+                cursor: "pointer",
+              }}
+            >
+              {showApiKey ? "Hide" : "Show"}
+            </button>
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="fview-ai-url" className="block text-xs mb-1.5" style={{ color: "var(--md-muted)" }}>
+              {t("settings.aiBaseUrl")}
+            </label>
+            <input
+              id="fview-ai-url"
+              type="text"
+              value={settings.aiBaseUrl}
+              onChange={(e) => update({ aiBaseUrl: e.target.value })}
+              placeholder={settings.aiProvider === "anthropic" ? "https://api.anthropic.com/v1" : "https://api.openai.com/v1"}
+              className="w-full rounded-md border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}
+            />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="fview-ai-model" className="block text-xs mb-1.5" style={{ color: "var(--md-muted)" }}>
+              {t("settings.aiModel")}
+            </label>
+            <input
+              id="fview-ai-model"
+              type="text"
+              value={settings.aiModel}
+              onChange={(e) => update({ aiModel: e.target.value })}
+              placeholder="gpt-4o / claude-sonnet-4-6"
+              className="w-full rounded-md border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}
+            />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="fview-ai-lang" className="block text-xs mb-1.5" style={{ color: "var(--md-muted)" }}>
+              {t("settings.aiTargetLang")}
+            </label>
+            <select
+              id="fview-ai-lang"
+              value={settings.aiTargetLang}
+              onChange={(e) => update({ aiTargetLang: e.target.value as AITargetLang })}
+              className="w-full appearance-none cursor-pointer rounded-md border border-gray-200 dark:border-gray-700 pl-3 pr-9 py-2.5 text-sm transition-colors hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              style={{
+                background: "var(--md-bg)",
+                color: "var(--md-fg)",
+                backgroundImage: chevron,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 0.65rem center",
+                backgroundSize: "1.1em 1.1em",
+              }}
+            >
+              <option value="auto" style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}>Auto</option>
+              <option value="zh" style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}>中文</option>
+              <option value="en" style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}>English</option>
+            </select>
+          </div>
         </div>
 
-        <p
-          className="text-xs mt-4 leading-relaxed"
-          style={{ color: "var(--md-muted)" }}
-        >
-          {t("settings.scopeNote")} <strong>{t("settings.scopeNoteBold")}</strong> {t("settings.scopeNoteAnd")} <strong>{t("settings.scopeNoteBold2")}</strong> {t("settings.scopeNoteRest")}
-        </p>
+        </>)}
+        </div>
 
+        {/* Preview (General tab only) */}
+        {tab === "general" && (
+          <div className="px-6 flex-shrink-0">
+            <div
+              className="rounded-md border p-3"
+              style={{
+                background: "var(--md-code-bg)",
+                borderColor: "var(--md-border)",
+                color: "var(--md-fg)",
+                fontSize: `${liveSize}px`,
+                fontFamily: currentStack,
+                lineHeight: settings.lineHeight,
+              }}
+            >
+              The quick brown fox jumps over the lazy dog.
+            </div>
+            <p
+              className="text-xs mt-3 mb-1 leading-relaxed"
+              style={{ color: "var(--md-muted)" }}
+            >
+              {t("settings.scopeNote")} <strong>{t("settings.scopeNoteBold")}</strong> {t("settings.scopeNoteAnd")} <strong>{t("settings.scopeNoteBold2")}</strong> {t("settings.scopeNoteRest")}
+            </p>
+          </div>
+        )}
+
+        {/* Footer always visible */}
         <div
-          className="flex items-center justify-between mt-5 pt-4"
+          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
           style={{ borderTop: "1px solid var(--md-border)" }}
         >
           <button
@@ -304,7 +467,7 @@ export function SettingsModal({ open, onClose }: Props) {
             {t("settings.reset")}
           </button>
           <button
-            onClick={onClose}
+            onClick={() => { host.notify("Settings saved", "info"); onClose(); }}
             className="text-sm px-4 py-1.5 rounded-md bg-blue-500 hover:bg-blue-600 text-white"
           >
             {t("settings.done")}

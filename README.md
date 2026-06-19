@@ -8,6 +8,7 @@ A minimal cross-platform desktop file previewer & editor for macOS, Windows, and
 - **Read-only preview**: PDF, images
 - **Folder browsing**: tree sidebar with file type icons
 - **Settings**: light/dark theme, font family/size/line-height, English/中文
+- **AI Assistant** (Markdown & PDF): summarize documents, translate, explain code. Context-aware — automatically reads file content, PDF outlines, and page text. Configurable provider (OpenAI-compatible / Anthropic) with custom API key, base URL, and model. See [AI Assistant](#ai-assistant).
 - **Plugin-extensible** (see [Plugin System](#plugin-system)): built-in extensions register commands, toolbar items, and notifications through a unified API.
 
 ## Supported File Types
@@ -69,6 +70,48 @@ All global shortcuts are dispatched by a centralized `CommandProvider` (see [Plu
 - **Dirty tracking**: unsaved indicator for Markdown edits
 - **Settings** persisted to `localStorage`: language (en/zh), theme, font family, font size (8–72px), line height
 - **External links** in Markdown open in the system browser
+- **AI context-aware**: PDF auto-detects chapter structure, page text; Markdown auto-injects full content into prompts
+
+## AI Assistant
+
+FView ships with a built-in AI assistant extension (`extensions/ai-assistant`) that supports Markdown and PDF files.
+
+### Setup
+
+1. Open **Settings → AI** tab.
+2. Choose a provider: **OpenAI / Compatible** (OpenAI, Ollama, DeepSeek, Groq…) or **Anthropic (Claude)**.
+3. Enter your **API Key**, **Model** name, and optionally a custom **Base URL**.
+4. Click **Done** — a toast confirms settings are saved.
+
+### Usage
+
+| Trigger | Behavior |
+|---|---|
+| Toolbar **✨ AI** button | Opens the AI panel (bottom center). Auto-detects the current file type. |
+| PDF opened | Panel auto-appears in compact mode (input + presets only). Expands on first send. |
+| `⌘⇧Y` | AI: Summarize (opens panel) |
+| `⌘⇧E` | AI: Explain Code (opens panel if selection exists) |
+
+### Context injection
+
+| File type | What the AI sees automatically |
+|---|---|
+| **Markdown** | Full file content (first 4000 chars) + current selection |
+| **PDF** | Document outline (chapter titles + pages) + current page text (first 3000 chars) |
+| Other types | AI shows "only supports Markdown & PDF" and won't open |
+
+### Preset commands
+
+| Button | What it does |
+|---|---|
+| Summarize Document | Injects full Markdown content and asks for a summary |
+| Summarize Selection | Uses the current text selection |
+| Translate | Translates selected text or entire document |
+| Explain Code | Explains the selected code block |
+
+### Providers
+
+Works with any OpenAI-compatible endpoint (`/v1/chat/completions`) and Anthropic's Messages API. The Base URL field is always visible so you can use proxies or self-hosted models.
 
 ## Plugin System
 
@@ -85,7 +128,7 @@ FView ships with a lightweight extension API. The plugin system sits between the
 │ ├── host.ts           ConcreteHostAPI (createHostAPI factory)  │
 │ └── extensions/       Built-in extension modules              │
 │     ├── index.ts          builtInExtensions entry              │
-│     └── demo-hello/       Seed extension ("Say Hello" button)  │
+│     └── ai-assistant/     AI chat, summarize, translate        │
 ├──────────────────────────────────────────────────────────────┤
 │ src/hooks/                                                    │
 │ ├── useCommands.tsx   CommandProvider + useCommand / register │
@@ -164,7 +207,8 @@ FView ships with a lightweight extension API. The plugin system sits between the
 | `host.settings` | `get()`, `update(patch)` | Validated against the same bounds as `SettingsModal` |
 | `host.commands` | `register(cmd)`, `execute(id, ...args)` | Commands without a shortcut still work via `execute` |
 | `host.registry` | `registerToolbar`, `registerPanel`, `listToolbar(slot)` | |
-| `host.events` | `subscribe(cb)` | Fires on file/theme/settings/notification changes |
+| `host.events` | `subscribe(cb)` | Host-wide state changes (theme, settings). Separate bus — NOT fired by `notify`. |
+| `host.onNotification` | `subscribe(cb)` | Notification-only bus. Used by `<ToastHost />`. |
 | `host.notify(message, level?)` | Returns notification id | Renders via `<ToastHost />` (info/warn/error color) |
 
 ### Constraints
@@ -188,7 +232,7 @@ To work on the plugin system without Tauri/Rust:
 npm run dev   # vite only — open http://localhost:1420
 ```
 
-The dev toolbar shows a "Say Hello" demo button (from `extensions/demo-hello`) once the page loads. Click it to verify the registry → toast pipeline end-to-end.
+The dev toolbar shows an "✨ AI" button once the page loads. Configure an API key in Settings → AI, then open a Markdown or PDF file to try context-aware Q&A.
 
 ## Build
 

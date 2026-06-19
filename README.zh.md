@@ -8,6 +8,7 @@
 - **只读预览**：PDF、图片
 - **文件夹浏览**：树形侧边栏，文件类型彩色图标
 - **设置**：明暗主题、字体/字号/行高、English/中文
+- **AI 助手**（Markdown & PDF）：总结文档、翻译、解释代码。自动读取文件内容、PDF 目录和页面文本。可配置任意兼容 API（OpenAI / Anthropic），支持自定义 Key、Base URL 和模型。详见 [AI 助手](#ai-助手)
 - **插件可扩展**（见 [插件系统](#插件系统)）：内置扩展通过统一 API 注册命令、工具栏按钮、通知，无需修改核心组件
 
 ## 支持的文件类型
@@ -69,6 +70,48 @@
 - **脏标记**：Markdown 编辑未保存时显示指示
 - **设置** 持久化到 `localStorage`：语言（en/zh）、主题、字体、字号（8–72px）、行高
 - **外部链接** 在 Markdown 预览中点击会在系统浏览器中打开
+- **AI 上下文感知**：PDF 自动识别章节结构和页面文本；Markdown 自动将全文注入提示词
+
+## AI 助手
+
+FView 内置 AI 助手扩展（`extensions/ai-assistant`），支持 Markdown 和 PDF 文件。
+
+### 配置
+
+1. 打开 **Settings → AI** 标签页。
+2. 选择提供商：**OpenAI / Compatible**（OpenAI、Ollama、DeepSeek、Groq 等）或 **Anthropic (Claude)**。
+3. 填入 **API Key**、**Model** 名称，可选自定义 **Base URL**。
+4. 点击 **Done** — toast 提示保存成功。
+
+### 使用方式
+
+| 触发方式 | 行为 |
+|---|---|
+| 工具栏 **✨ AI** 按钮 | 打开 AI 面板（底部居中），自动识别当前文件类型 |
+| 打开 PDF | 面板自动以紧凑模式展示（仅输入框 + 预设命令），发送后展开 |
+| `⌘⇧Y` | AI：总结文档 |
+| `⌘⇧E` | AI：解释代码（需有选中内容） |
+
+### 上下文注入
+
+| 文件类型 | AI 自动获取的信息 |
+|---|---|
+| **Markdown** | 文件全文（前 4000 字）+ 当前选中文本 |
+| **PDF** | 文档目录（章节标题 + 页码）+ 当前页文本（前 3000 字） |
+| 其他类型 | AI 提示「仅支持 Markdown 和 PDF」，面板不会打开 |
+
+### 预设命令
+
+| 按钮 | 功能 |
+|---|---|
+| 总结文档 | 注入全文内容，请求生成摘要 |
+| 总结选中 | 使用当前选中的文本 |
+| 翻译 | 翻译选中的文本或整个文档 |
+| 解释代码 | 解释选中的代码块 |
+
+### 提供商兼容性
+
+支持所有 OpenAI 兼容接口（`/v1/chat/completions`）和 Anthropic Messages API。Base URL 对所有提供商可见，可使用代理或自部署模型。
 
 ## 插件系统
 
@@ -85,7 +128,7 @@ FView 自带一套轻量扩展 API。插件系统位于核心 React 组件与扩
 │ ├── host.ts           ConcreteHostAPI（createHostAPI 工厂）    │
 │ └── extensions/       内置扩展模块                             │
 │     ├── index.ts          builtInExtensions 入口              │
-│     └── demo-hello/       种子扩展（"Say Hello" 按钮）         │
+│     └── ai-assistant/     AI 对话、总结、翻译                  │
 ├──────────────────────────────────────────────────────────────┤
 │ src/hooks/                                                    │
 │ ├── useCommands.tsx   CommandProvider + useCommand / register │
@@ -103,7 +146,7 @@ FView 自带一套轻量扩展 API。插件系统位于核心 React 组件与扩
 | 能力 | API | 示例 |
 |---|---|---|
 | 注册键盘快捷键 | `host.commands.register({ id, label, shortcut, run })` | `shortcut: "Mod+Shift+Y"` 触发"总结选中" |
-| 添加工具栏按钮 | `host.registry.registerToolbar({ id, slot: "toolbar-end", render })` | `extensions/demo-hello` 中的 "Say Hello" |
+| 添加工具栏按钮 | `host.registry.registerToolbar({ id, slot: "toolbar-end", render })` | `extensions/ai-assistant` 中的 "✨ AI" |
 | 弹出通知 | `host.notify(message, level?)` | 右下角 toast（info/warn/error 颜色区分） |
 | 读取当前文件 | `host.file.get()` / `host.file.subscribe(cb)` | 监听文件变化而不强制 re-render |
 | 读取当前选区 | `host.selection.get()` / `host.selection.subscribe(cb)` | Markdown (CM5) + Code (CM6) 选区 |
@@ -164,26 +207,15 @@ FView 自带一套轻量扩展 API。插件系统位于核心 React 组件与扩
 | `host.settings` | `get()`、`update(patch)` | 与 `SettingsModal` 同一套边界校验 |
 | `host.commands` | `register(cmd)`、`execute(id, ...args)` | 无 shortcut 的命令也能通过 `execute` 触发 |
 | `host.registry` | `registerToolbar`、`registerPanel`、`listToolbar(slot)` | |
-| `host.events` | `subscribe(cb)` | 在 file/theme/settings/notification 变化时触发 |
-| `host.notify(message, level?)` | 返回通知 id | 通过 `<ToastHost />` 渲染（颜色区分严重程度） |
+| `host.events` | `subscribe(cb)` | 宿主状态变化（主题、设置等），独立 bus，不会被 `notify` 触发 |
+| `host.onNotification` | `subscribe(cb)` | 通知专用 bus，`<ToastHost />` 使用 |
+| `host.notify(message, level?)` | 返回通知 id | 通过 `<ToastHost />` 渲染（info/warn/error 颜色区分） |
 
 ### 约束
 
 - 扩展**静态导入**，没有运行时从磁盘或网络加载的机制。要发布新扩展，请加到 `builtInExtensions` 然后重新构建。
 - 插件与宿主页运行在同一个 JS 上下文（没有 worker / 沙箱边界）。请勿在扩展中执行不可信代码。
 - React 18 StrictMode 下，`activate()` 在 dev 模式会被调用两次。确保你的 cleanup 是幂等的。
-
-## 技术栈
-
-- **Tauri v2**（Rust）— 桌面外壳
-- **React 18 + TypeScript** — UI
-- **Tailwind CSS** + `@tailwindcss/typography` — 样式
-- **Vite** — 构建工具
-- **bytemd** + `@bytemd/react`（内置 CodeMirror 5）— Markdown 编辑器（带 GFM / highlight / frontmatter / gemoji / math / medium-zoom / mermaid 插件）
-- **CodeMirror 6** + `@uiw/react-codemirror` — 代码 / HTML 编辑器
-- **pdfjs-dist** — PDF 渲染
-- **tiny_http**（Rust）— HTML 预览沙箱服务器
-- **highlight.js** + `juejin-markdown-themes` — Markdown 代码高亮与主题
 
 ## 开发
 
@@ -200,7 +232,7 @@ npm run tauri:dev
 npm run dev   # 仅 vite，浏览器打开 http://localhost:1420
 ```
 
-页面加载完成后，工具栏会出现一个 "Say Hello" 按钮（来自 `extensions/demo-hello`）。点击后会触发 toast，验证 registry → notify 链路端到端工作。
+页面加载完成后，工具栏会出现 "✨ AI" 按钮。在 Settings → AI 中配置 API Key 后，打开 Markdown 或 PDF 文件即可体验上下文感知的 AI 问答。
 
 ## 打包
 

@@ -104,6 +104,22 @@ export function HelpModal({ open, onClose }: Props) {
           </table>
           <p>{t("help.pdfHint")}</p>
 
+          <h3>{t("help.hAi")}</h3>
+          <table>
+            <thead>
+              <tr><th>Shortcut</th><th>{lang === "zh" ? "动作" : "Action"}</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><kbd>⌘⇧Y</kbd></td><td>{lang === "zh" ? "AI：总结文档 / 选中内容" : "AI: Summarize document / selection"}</td></tr>
+              <tr><td><kbd>⌘⇧E</kbd></td><td>{lang === "zh" ? "AI：解释代码" : "AI: Explain code"}</td></tr>
+            </tbody>
+          </table>
+          <p style={{ color: "var(--md-muted)", fontSize: "0.92em" }}>
+            {lang === "zh"
+              ? "AI 助手仅支持 Markdown 和 PDF 文件。打开这两种文件时，AI 会自动读取文档内容和结构（PDF 的目录、当前页文本），无需手动粘贴。工具栏的 ✨ AI 按钮可以随时打开面板；PDF 打开时面板会自动以紧凑模式展示在底部。"
+              : "AI Assistant supports Markdown and PDF files only. When viewing these file types, the AI automatically reads the document content and structure (PDF outlines, current page text) — no need to copy-paste. Click ✨ AI in the toolbar to open the panel; it auto-appears in compact mode when viewing a PDF."}
+          </p>
+
           <h2>{t("help.hTypes")}</h2>
           <table>
             <thead>
@@ -133,6 +149,7 @@ export function HelpModal({ open, onClose }: Props) {
             <li><strong>{t("settings.font")}</strong> — {t("help.settingsLi2").replace("Font — ", "")}</li>
             <li><strong>{t("settings.size")}</strong> — {t("help.settingsLi3").replace("Size — ", "")}</li>
             <li><strong>{t("settings.lineHeight")}</strong> — {t("help.settingsLi4").replace("Line height — ", "")}</li>
+            <li><strong>{t("help.settingsLi5")}</strong></li>
           </ul>
           <p>{t("help.settingsP2")}</p>
           <p>{t("help.settingsP3")}</p>
@@ -144,6 +161,7 @@ export function HelpModal({ open, onClose }: Props) {
             <li>{t("help.tip3")}</li>
             <li>{t("help.tip4")}</li>
             <li>{t("help.tip5")}</li>
+            <li>{t("help.tip6")}</li>
           </ul>
         </div>
       </div>

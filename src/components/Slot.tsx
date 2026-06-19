@@ -21,8 +21,6 @@ export function Slot({ name }: SlotProps) {
   const [items, setItems] = useState<ToolbarContribution[]>(() => host.registry.listToolbar(name));
 
   useEffect(() => {
-    // Re-read on subscribe (handles the case where the initial list
-    // grew between mount and effect) and on every registry change.
     setItems(host.registry.listToolbar(name));
     return host.registry.subscribeToolbar(() => {
       setItems(host.registry.listToolbar(name));

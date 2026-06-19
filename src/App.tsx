@@ -62,6 +62,9 @@ export default function App() {
   const settingsRef = useRef(settingsCtx);
   settingsRef.current = settingsCtx;
 
+  const commandCtxRef = useRef(commandCtx);
+  commandCtxRef.current = commandCtx;
+
   const host = useMemo<ConcreteHostAPI>(
     () =>
       createHostAPI({
@@ -85,10 +88,9 @@ export default function App() {
           update: (patch) =>
             settingsRef.current.update(patch as Parameters<typeof settingsRef.current.update>[0]),
         },
-        resolveCommand: (id) => commandCtx.getCommand(id),
-        registerCommand: commandCtx.register,
+        resolveCommand: (id) => commandCtxRef.current.getCommand(id),
+        registerCommand: (cmd) => commandCtxRef.current.register(cmd),
       }),
-    // Intentionally empty — host is stable; captured refs read latest values.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -134,6 +136,14 @@ export default function App() {
 
   // Extensions get a stable array reference so PluginProvider doesn't
   // re-activate them on every render.
+  // Emit file changes so plugins (e.g. AI panel) can react.
+  // Must be a useRef to avoid stale closure over host in the effect.
+  const currentRef = useRef(current);
+  currentRef.current = current;
+  useEffect(() => {
+    host.file._emit();
+  }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const extensions = useMemo(() => builtInExtensions, []);
 
   return (

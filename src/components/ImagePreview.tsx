@@ -58,7 +58,14 @@ export function ImagePreview({ file }: { file: LoadedFile }) {
             <img
               src={src}
               alt={file.name}
-              style={{ transform: `scale(${scale})`, transformOrigin: "center center", transition: "transform 0.1s" }}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+                transform: `scale(${scale})`,
+                transformOrigin: "center center",
+                transition: "transform 0.1s",
+              }}
               draggable={false}
             />
           </div>

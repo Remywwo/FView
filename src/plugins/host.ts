@@ -88,6 +88,7 @@ export interface ConcreteHostAPI extends Omit<HostAPIProtocol, "file" | "selecti
     get(): LoadedFile | null;
     subscribe(cb: () => void): () => void;
     setContent(text: string): void;
+    _emit(): void;
   };
   readonly selection: {
     get(): SelectionSnapshot;
@@ -98,14 +99,17 @@ export interface ConcreteHostAPI extends Omit<HostAPIProtocol, "file" | "selecti
     update(patch: Partial<Settings>): void;
   };
   readonly registry: Registry;
-  /** Subscribe to host-wide events (file, theme, settings, notifications). */
+  /** Subscribe to host-wide state changes (theme, settings, etc.). Does NOT fire on notifications. */
   readonly events: {
+    subscribe(cb: () => void): () => void;
+  };
+  /** Subscribe to notification events (toast shown / dismissed). Separate from `events`. */
+  readonly onNotification: {
     subscribe(cb: () => void): () => void;
   };
   /**
    * Show a toast/notification. Returns the notification id for advanced
-   * use (e.g. programmatic dismissal). PR3b emits to a simple in-memory
-   * queue; PR5 wires a visible toast component.
+   * use (e.g. programmatic dismissal).
    */
   notify(message: string, level?: NotifyLevel): number;
 }
@@ -119,14 +123,17 @@ export interface ConcreteHostAPI extends Omit<HostAPIProtocol, "file" | "selecti
  */
 export function createHostAPI(deps: HostDeps): ConcreteHostAPI {
   const registry = new Registry();
-  const bus = createBus();
+  const eventsBus = createBus();       // theme, settings, etc.
+  const notifyBus = createBus();       // notifications only
+  const fileBus = createBus();         // file changes only
   let nextNotificationId = 1;
 
   const host: ConcreteHostAPI = {
     file: {
       get: () => deps.loader.get(),
       setContent: (text) => deps.loader.setContent(text),
-      subscribe: bus.subscribe,
+      subscribe: fileBus.subscribe,
+      _emit: fileBus.emit,
     },
     selection: {
       get: () => getSelection(),
@@ -153,7 +160,10 @@ export function createHostAPI(deps: HostDeps): ConcreteHostAPI {
     },
     registry,
     events: {
-      subscribe: bus.subscribe,
+      subscribe: eventsBus.subscribe,
+    },
+    onNotification: {
+      subscribe: notifyBus.subscribe,
     },
     notify: (message, level = "info") => {
       const id = nextNotificationId++;
@@ -163,10 +173,8 @@ export function createHostAPI(deps: HostDeps): ConcreteHostAPI {
         level,
         expiresAt: Date.now() + 4000,
       };
-      // PR3b: notify queues into a module-level list and emits on the
-      // bus. PR5 will mount a toast component that reads the list.
       notificationQueue.push(notification);
-      bus.emit();
+      notifyBus.emit();
       return id;
     },
   };
@@ -176,7 +184,7 @@ export function createHostAPI(deps: HostDeps): ConcreteHostAPI {
 
 /**
  * Module-level notification queue. PR5 will add a `<ToastHost>` that
- * subscribes to `host.events` and drains this list to render toasts.
+ * subscribes to `host.onNotification` and drains this list to render toasts.
  */
 export const notificationQueue: Notification[] = [];
 

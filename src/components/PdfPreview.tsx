@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+
 import * as pdfjs from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import type { LoadedFile } from "@/hooks/useFileLoader";
 import { buildOutlineTree, PdfOutlineDrawer, type PdfOutlineNode } from "@/components/PdfOutlineDrawer";
 import { useI18n } from "@/hooks/useI18n";
+import {
+  setPdfPageText,
+  setPdfOutline,
+  setPdfTotalPages,
+  setCurrentPdfPage,
+  clearPdfContext,
+} from "@/plugins/extensions/ai-assistant/pdfContext";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -17,6 +25,7 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
   const [jumpInput, setJumpInput] = useState("");
   const [outline, setOutline] = useState<PdfOutlineNode[] | null>(null);
   const [outlineLoading, setOutlineLoading] = useState(true);
+  const [pageText, setPageText] = useState("");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasScrollRef = useRef<HTMLDivElement | null>(null);
   const outlineScrollRef = useRef<HTMLDivElement | null>(null);
@@ -43,6 +52,7 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
         if (cancelled) return;
         docRef.current = doc;
         setPages(doc.numPages);
+          setPdfTotalPages(doc.numPages);
         setCurrentPage(1);
         setLoading(false);
 
@@ -52,6 +62,7 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
           const tree = await buildOutlineTree(raw ?? null, doc);
           if (cancelled) return;
           setOutline(tree);
+          setPdfOutline(tree);
         } catch (e) {
           console.warn("Failed to load PDF outline", e);
         } finally {
@@ -64,7 +75,7 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
         setOutlineLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearPdfContext(); };
   }, [file.path, file.binaryBytes]);
 
   useEffect(() => {
@@ -101,6 +112,29 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
       }
     };
   }, [currentPage, scale, pages]);
+
+  // Extract current page text for the AI mini chat.
+  useEffect(() => {
+    let cancelled = false;
+    const doc = docRef.current;
+    if (!doc || currentPage < 1 || currentPage > pages) return;
+    (async () => {
+      try {
+        const page = await doc.getPage(currentPage);
+        if (cancelled) return;
+        const tc = await page.getTextContent();
+        const text = tc.items.map((it: unknown) => (it as { str?: string }).str ?? "").join(" ");
+        if (!cancelled) {
+          setPageText(text);
+          setPdfPageText(currentPage, text);
+        }
+      } catch { /* text extraction is best-effort */ }
+    })();
+    return () => { cancelled = true; };
+  }, [currentPage, pages]);
+
+  // Notify the PDF context cache of current page changes.
+  useEffect(() => { setCurrentPdfPage(currentPage); }, [currentPage]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

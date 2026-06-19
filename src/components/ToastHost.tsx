@@ -18,7 +18,7 @@ export function ToastHost() {
   useEffect(() => {
     // Mark anything already queued at mount time so we don't replay it.
     for (const n of notificationQueue) seenIds.current.add(n.id);
-    return host.events.subscribe(() => {
+    return host.onNotification.subscribe(() => {
       const fresh: Notification[] = [];
       for (const n of notificationQueue) {
         if (!seenIds.current.has(n.id)) {
@@ -35,7 +35,7 @@ export function ToastHost() {
         }, ms);
       }
     });
-  }, [host.events]);
+  }, [host.onNotification]);
 
   if (toasts.length === 0) return null;
 

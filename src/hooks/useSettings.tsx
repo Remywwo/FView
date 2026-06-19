@@ -25,16 +25,32 @@ export const LINE_HEIGHTS: LineHeightOption[] = [
   { value: 2.0, label: "Loose" },
 ];
 
+export type AIProviderChoice = "openai-compat" | "anthropic" | "none";
+export type AITargetLang = "zh" | "en" | "auto";
+
 export interface Settings {
   fontFamily: FontFamily;
   fontSize: FontSize;
   lineHeight: LineHeight;
+  // ── AI ──
+  aiProvider: AIProviderChoice;
+  aiApiKey: string;
+  aiBaseUrl: string;
+  aiModel: string;
+  aiTargetLang: AITargetLang;
 }
+
+const AI_TARGET_LANGS: readonly AITargetLang[] = ["zh", "en", "auto"];
 
 const DEFAULT_SETTINGS: Settings = {
   fontFamily: "system",
   fontSize: DEFAULT_FONT_SIZE,
   lineHeight: DEFAULT_LINE_HEIGHT,
+  aiProvider: "none",
+  aiApiKey: "",
+  aiBaseUrl: "https://api.openai.com/v1",
+  aiModel: "gpt-4o",
+  aiTargetLang: "auto",
 };
 
 const STORAGE_KEY = "fview:settings";
@@ -55,6 +71,19 @@ function loadSettings(): Settings {
       lineHeight: Number.isFinite(lh) && lh >= MIN_LINE_HEIGHT && lh <= MAX_LINE_HEIGHT
         ? lh
         : DEFAULT_SETTINGS.lineHeight,
+      aiProvider: typeof parsed.aiProvider === "string" && ["openai-compat", "anthropic", "none"].includes(parsed.aiProvider)
+        ? (parsed.aiProvider as AIProviderChoice)
+        : DEFAULT_SETTINGS.aiProvider,
+      aiApiKey: typeof parsed.aiApiKey === "string" ? parsed.aiApiKey : DEFAULT_SETTINGS.aiApiKey,
+      aiBaseUrl: typeof parsed.aiBaseUrl === "string" && parsed.aiBaseUrl.length > 0
+        ? parsed.aiBaseUrl
+        : DEFAULT_SETTINGS.aiBaseUrl,
+      aiModel: typeof parsed.aiModel === "string" && parsed.aiModel.length > 0
+        ? parsed.aiModel
+        : DEFAULT_SETTINGS.aiModel,
+      aiTargetLang: typeof parsed.aiTargetLang === "string" && (AI_TARGET_LANGS as readonly string[]).includes(parsed.aiTargetLang)
+        ? (parsed.aiTargetLang as AITargetLang)
+        : DEFAULT_SETTINGS.aiTargetLang,
     };
   } catch {
     return DEFAULT_SETTINGS;

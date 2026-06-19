@@ -1,6 +1,6 @@
 [package]
 name = "fview-power"
-version = "0.2.2"
+version = "0.2.3"
 description = "FView Power — a minimal file preview & editor"
 authors = ["you"]
 edition = "2021"

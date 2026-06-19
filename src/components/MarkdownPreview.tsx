@@ -187,15 +187,17 @@ export function MarkdownPreview({ file, setContent }: Props) {
     rehype: (processor) => processor.use(() => (tree: any) => {
       function walk(node: any) {
         if (node.tagName === "img" && node.properties?.src) {
-          const src: string = node.properties.src;
-          if (src && !src.startsWith("http") && !src.startsWith("data:") && !src.startsWith("asset:") && !src.startsWith("/")) {
+          const src: string = String(node.properties.src || "");
+          // Skip absolute URLs, data URIs, asset:// — leave them for the browser
+          if (!src || /^(https?:|data:|asset:|\/)/.test(src)) return;
+          try {
             let rel = src;
             try { rel = decodeURIComponent(rel); } catch {}
             rel = rel.replace(/^\.[/\\]/, "");
             const sep = fileDir.includes("\\") ? "\\" : "/";
             const abs = rel.split(/[\\/]/).reduce((a, s) => a + sep + s, fileDir);
             node.properties.src = convertFileSrc(abs);
-          }
+          } catch { /* leave src unchanged on error */ }
         }
         if (node.children) for (const c of node.children) walk(c);
       }

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-06-17
+
+### Fixed
+- Local image plugin: broader URL match (`https:` + `try-catch` safety) for external images
+- Docs Linux download link (.deb instead of .exe)
+
+## [0.2.2] - 2026-06-17
+
+### Added
+- Line numbers (`editorConfig.lineNumbers: true`, later removed)
+
+### Fixed
+- CodeMirror gutter horizontal padding preserved (split `padding` shorthand)
+- Explicit line numbers disable via `cm.setOption` (editorConfig changes not retroactive)
+- Windows + macOS/Linux CI builds (Rust pattern fix + tauriScript)
+
+### Removed
+- Line numbers (CM5 gutter limitation — numbers inline with content, not in separate gutter)
+
 ## [0.2.1] - 2026-06-17
 
 ### Added

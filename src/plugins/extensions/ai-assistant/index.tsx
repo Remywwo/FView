@@ -90,6 +90,14 @@ function AIPanelSlot({ ctx }: { ctx: ExtensionContext }) {
     return () => { panelTrigger = null; };
   }, []);
 
+  // Shortcut: toggle AI panel
+  useRegisterCommand({
+    id: "ai.toggle",
+    label: "AI: Toggle Panel",
+    shortcut: "Mod+Shift+A",
+    run: toggle,
+  });
+
   // Shortcut: summarize document / selection
   useRegisterCommand({
     id: "ai.summarize",

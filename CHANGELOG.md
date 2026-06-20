@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-06-20
+
+### Added
+- Right-click "Ask AI" context menu on selected text in Markdown editor and preview
+- Input auto-focus when opening AI panel via toolbar button or keyboard shortcut
+- AI greetings/small-talk support (introduces itself, lists capabilities)
+- PDF page context auto-injected into AI queries
+- Image preview: default fit-to-viewport (`max-width:100%; max-height:100%`)
+
+### Changed
+- Preset commands simplified to: Summarize Page, Summarize Chapter, Summarize Document
+- AI scope restricted to document analysis, summarization, and translation
+- All AI notifications now support i18n (Chinese / English)
+- AI response language follows UI locale when `aiTargetLang` is set to `auto`
+- HTML preview toolbar button order matches Markdown (Preview → Editor → Split)
+- Settings modal: click outside no longer closes the panel
+
+### Removed
+- Code file AI support (Explain Code command, `⌘⇧E` shortcut, code context injection)
+- PDF text selection layer (reverted — canvas-only rendering)
+- Demo "Say Hello" extension
+
 ## [0.3.1] - 2026-06-19
 
 ### Added

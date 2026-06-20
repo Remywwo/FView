@@ -7,7 +7,7 @@ interface Props {
 }
 
 export function HelpModal({ open, onClose }: Props) {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!open) return;
@@ -35,7 +35,7 @@ export function HelpModal({ open, onClose }: Props) {
           style={{ borderColor: "var(--md-border)" }}
         >
           <h2 className="text-base font-semibold" style={{ color: "var(--md-fg)" }}>
-            {lang === "zh" ? "FView Power — 使用说明" : "FView Power — User Guide"}
+            {t("help.title")}
           </h2>
           <button
             onClick={onClose}
@@ -53,17 +53,17 @@ export function HelpModal({ open, onClose }: Props) {
           </p>
 
           <h2>{t("help.hOpening")}</h2>
-          <ul>
+          <ol>
             <li>{t("help.liOpenFile")}</li>
             <li>{t("help.liOpenFolder")}</li>
             <li dangerouslySetInnerHTML={{ __html: t("help.liDrop") }} />
-          </ul>
+          </ol>
 
           <h2>{t("help.hShortcuts")}</h2>
           <h3>{t("help.hGlobal")}</h3>
           <table>
             <thead>
-              <tr><th>Shortcut</th><th>{lang === "zh" ? "动作" : "Action"}</th></tr>
+              <tr><th>{t("help.colShortcut")}</th><th>{t("help.colAction")}</th></tr>
             </thead>
             <tbody>
               <tr><td><kbd>⌘O</kbd></td><td>{t("app.openFile")}</td></tr>
@@ -72,21 +72,21 @@ export function HelpModal({ open, onClose }: Props) {
               <tr><td><kbd>⇧⌘S</kbd></td><td>{t("app.saveAs")}</td></tr>
               <tr><td><kbd>⌘W</kbd></td><td>{t("app.close")}</td></tr>
               <tr><td><kbd>⌘.</kbd></td><td>{t("app.toggleTheme")}</td></tr>
-              <tr><td><kbd>Esc</kbd></td><td>{lang === "zh" ? "关闭任何弹窗 / 菜单" : "Close any open dialog / menu"}</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>{t("help.escClose")}</td></tr>
             </tbody>
           </table>
 
           <h3>{t("help.hMd")}</h3>
           <table>
             <thead>
-              <tr><th>Shortcut</th><th>{lang === "zh" ? "动作" : "Action"}</th></tr>
+              <tr><th>{t("help.colShortcut")}</th><th>{t("help.colAction")}</th></tr>
             </thead>
             <tbody>
-              <tr><td><kbd>⌘F</kbd></td><td>{lang === "zh" ? "查找 / 替换" : "Find in document"}</td></tr>
-              <tr><td><kbd>Enter</kbd></td><td>{lang === "zh" ? "下一个匹配" : "Next match"}</td></tr>
-              <tr><td><kbd>⇧Enter</kbd></td><td>{lang === "zh" ? "上一个匹配" : "Previous match"}</td></tr>
-              <tr><td><kbd>Esc</kbd></td><td>{lang === "zh" ? "关闭查找" : "Close search"}</td></tr>
-              <tr><td><kbd>/</kbd></td><td>{lang === "zh" ? "斜杠命令（插入块）" : "Slash command (insert block)"}</td></tr>
+              <tr><td><kbd>⌘F</kbd></td><td>{t("help.findInDoc")}</td></tr>
+              <tr><td><kbd>Enter</kbd></td><td>{t("help.nextMatch")}</td></tr>
+              <tr><td><kbd>⇧Enter</kbd></td><td>{t("help.prevMatch")}</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>{t("help.closeSearch")}</td></tr>
+              <tr><td><kbd>/</kbd></td><td>{t("help.slashCmd")}</td></tr>
             </tbody>
           </table>
           <p>{t("help.mdHint")}</p>
@@ -95,15 +95,15 @@ export function HelpModal({ open, onClose }: Props) {
           <h3>{t("help.hPdf")}</h3>
           <table>
             <thead>
-              <tr><th>Shortcut</th><th>{lang === "zh" ? "动作" : "Action"}</th></tr>
+              <tr><th>{t("help.colShortcut")}</th><th>{t("help.colAction")}</th></tr>
             </thead>
             <tbody>
               <tr><td><kbd>⌘G</kbd></td><td>{t("pdf.gotoTitle")}</td></tr>
               <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>{t("pdf.prevTitle")} / {t("pdf.nextTitle")}</td></tr>
               <tr><td><kbd>PageUp</kbd> / <kbd>PageDown</kbd></td><td>{t("pdf.prevTitle")} / {t("pdf.nextTitle")}</td></tr>
-              <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>{lang === "zh" ? "滚动当前视图（画布或目录）" : "Scroll the hovered view (canvas or outline)"}</td></tr>
-              <tr><td><kbd>Shift</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></td><td>{lang === "zh" ? "按一屏滚动" : "Scroll by one screen"}</td></tr>
-              <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>{lang === "zh" ? "第一页 / 最后一页" : "First / last page"}</td></tr>
+              <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>{t("help.pdfScroll")}</td></tr>
+              <tr><td><kbd>Shift</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></td><td>{t("help.pdfScrollByScreen")}</td></tr>
+              <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>{t("help.pdfFirstLast")}</td></tr>
             </tbody>
           </table>
           <p>{t("help.pdfHint")}</p>
@@ -111,23 +111,21 @@ export function HelpModal({ open, onClose }: Props) {
           <h3>{t("help.hAi")}</h3>
           <table>
             <thead>
-              <tr><th>Shortcut</th><th>{lang === "zh" ? "动作" : "Action"}</th></tr>
+              <tr><th>{t("help.colShortcut")}</th><th>{t("help.colAction")}</th></tr>
             </thead>
             <tbody>
-              <tr><td><kbd>⌘⇧Y</kbd></td><td>{lang === "zh" ? "AI：总结文档 / 选中内容" : "AI: Summarize document / selection"}</td></tr>
-              <tr><td><kbd>⌘⇧E</kbd></td><td>{lang === "zh" ? "AI：解释代码" : "AI: Explain code"}</td></tr>
+              <tr><td><kbd>⌘⇧Y</kbd></td><td>{t("help.aiSummary")}</td></tr>
+              <tr><td><kbd>⌘⇧E</kbd></td><td>{t("help.aiExplain")}</td></tr>
             </tbody>
           </table>
           <p style={{ color: "var(--md-muted)", fontSize: "0.92em" }}>
-            {lang === "zh"
-              ? "AI 助手仅支持 Markdown 和 PDF 文件。打开这两种文件时，AI 会自动读取文档内容和结构（PDF 的目录、当前页文本），无需手动粘贴。工具栏的 ✨ AI 按钮可以随时打开面板；PDF 打开时面板会自动以紧凑模式展示在底部。"
-              : "AI Assistant supports Markdown and PDF files only. When viewing these file types, the AI automatically reads the document content and structure (PDF outlines, current page text) — no need to copy-paste. Click ✨ AI in the toolbar to open the panel; it auto-appears in compact mode when viewing a PDF."}
+            {t("help.aiNote")}
           </p>
 
           <h2>{t("help.hTypes")}</h2>
           <table>
             <thead>
-              <tr><th>{lang === "zh" ? "类型" : "Type"}</th><th>{lang === "zh" ? "扩展名" : "Extensions"}</th><th>{lang === "zh" ? "编辑" : "Edit"}</th></tr>
+              <tr><th>{t("help.colType")}</th><th>{t("help.colExtensions")}</th><th>{t("help.colEdit")}</th></tr>
             </thead>
             <tbody>
               <tr><td>{t("help.mdRow")}</td><td><code>.md</code> <code>.markdown</code> <code>.mdx</code></td><td>✓</td></tr>
@@ -148,25 +146,25 @@ export function HelpModal({ open, onClose }: Props) {
 
           <h2>{t("help.hSettings")}</h2>
           <p>{t("help.settingsP1")}</p>
-          <ul>
+          <ol>
             <li><strong>{t("settings.theme")}</strong> — {t("help.settingsLi1").replace("Theme — ", "")}</li>
             <li><strong>{t("settings.font")}</strong> — {t("help.settingsLi2").replace("Font — ", "")}</li>
             <li><strong>{t("settings.size")}</strong> — {t("help.settingsLi3").replace("Size — ", "")}</li>
             <li><strong>{t("settings.lineHeight")}</strong> — {t("help.settingsLi4").replace("Line height — ", "")}</li>
             <li><strong>{t("help.settingsLi5")}</strong></li>
-          </ul>
+          </ol>
           <p>{t("help.settingsP2")}</p>
           <p>{t("help.settingsP3")}</p>
 
           <h2>{t("help.hTips")}</h2>
-          <ul>
+          <ol>
             <li>{t("help.tip1")}</li>
             <li>{t("help.tip2")}</li>
             <li>{t("help.tip3")}</li>
             <li>{t("help.tip4")}</li>
             <li>{t("help.tip5")}</li>
             <li>{t("help.tip6")}</li>
-          </ul>
+          </ol>
         </div>
       </div>
     </div>

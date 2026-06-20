@@ -29,6 +29,38 @@ export function SettingsModal({ open, onClose }: Props) {
   const [tab, setTab] = useState<"general" | "ai">("general");
   const { host } = useExtensionContext();
 
+  // Local AI state — only committed to settings on explicit confirm.
+  const [aiProvider, setAiProviderL] = useState<AIProviderChoice>(settings.aiProvider);
+  const [aiApiKey, setAiApiKeyL] = useState(settings.aiApiKey);
+  const [aiBaseUrl, setAiBaseUrlL] = useState(settings.aiBaseUrl);
+  const [aiModel, setAiModelL] = useState(settings.aiModel);
+  const [aiTargetLang, setAiTargetLangL] = useState<AITargetLang>(settings.aiTargetLang);
+
+  // Sync local AI state when settings change externally.
+  useEffect(() => { setAiProviderL(settings.aiProvider); }, [settings.aiProvider]);
+  useEffect(() => { setAiApiKeyL(settings.aiApiKey); }, [settings.aiApiKey]);
+  useEffect(() => { setAiBaseUrlL(settings.aiBaseUrl); }, [settings.aiBaseUrl]);
+  useEffect(() => { setAiModelL(settings.aiModel); }, [settings.aiModel]);
+  useEffect(() => { setAiTargetLangL(settings.aiTargetLang); }, [settings.aiTargetLang]);
+
+  const aiChanged =
+    aiProvider !== settings.aiProvider ||
+    aiApiKey !== settings.aiApiKey ||
+    aiBaseUrl !== settings.aiBaseUrl ||
+    aiModel !== settings.aiModel ||
+    aiTargetLang !== settings.aiTargetLang;
+
+  const commitAI = () => {
+    update({
+      aiProvider,
+      aiApiKey,
+      aiBaseUrl,
+      aiModel,
+      aiTargetLang,
+    });
+    host.notify("Settings saved", "info");
+  };
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -320,8 +352,8 @@ export function SettingsModal({ open, onClose }: Props) {
             </label>
             <select
               id="fview-ai-provider"
-              value={settings.aiProvider}
-              onChange={(e) => update({ aiProvider: e.target.value as AIProviderChoice })}
+              value={aiProvider}
+              onChange={(e) => setAiProviderL(e.target.value as AIProviderChoice)}
               className="w-full appearance-none cursor-pointer rounded-md border border-gray-200 dark:border-gray-700 pl-3 pr-9 py-2.5 text-sm transition-colors hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               style={{
                 background: "var(--md-bg)",
@@ -345,8 +377,8 @@ export function SettingsModal({ open, onClose }: Props) {
             <input
               id="fview-ai-key"
               type={showApiKey ? "text" : "password"}
-              value={settings.aiApiKey}
-              onChange={(e) => update({ aiApiKey: e.target.value })}
+              value={aiApiKey}
+              onChange={(e) => setAiApiKeyL(e.target.value)}
               placeholder="sk-…"
               className="w-full rounded-md border border-gray-200 dark:border-gray-700 pl-3 pr-16 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}
@@ -378,8 +410,8 @@ export function SettingsModal({ open, onClose }: Props) {
             <input
               id="fview-ai-url"
               type="text"
-              value={settings.aiBaseUrl}
-              onChange={(e) => update({ aiBaseUrl: e.target.value })}
+              value={aiBaseUrl}
+              onChange={(e) => setAiBaseUrlL(e.target.value)}
               placeholder={settings.aiProvider === "anthropic" ? "https://api.anthropic.com/v1" : "https://api.openai.com/v1"}
               className="w-full rounded-md border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}
@@ -393,8 +425,8 @@ export function SettingsModal({ open, onClose }: Props) {
             <input
               id="fview-ai-model"
               type="text"
-              value={settings.aiModel}
-              onChange={(e) => update({ aiModel: e.target.value })}
+              value={aiModel}
+              onChange={(e) => setAiModelL(e.target.value)}
               placeholder="gpt-4o / claude-sonnet-4-6"
               className="w-full rounded-md border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{ background: "var(--md-bg)", color: "var(--md-fg)" }}
@@ -407,8 +439,8 @@ export function SettingsModal({ open, onClose }: Props) {
             </label>
             <select
               id="fview-ai-lang"
-              value={settings.aiTargetLang}
-              onChange={(e) => update({ aiTargetLang: e.target.value as AITargetLang })}
+              value={aiTargetLang}
+              onChange={(e) => setAiTargetLangL(e.target.value as AITargetLang)}
               className="w-full appearance-none cursor-pointer rounded-md border border-gray-200 dark:border-gray-700 pl-3 pr-9 py-2.5 text-sm transition-colors hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               style={{
                 background: "var(--md-bg)",
@@ -454,7 +486,7 @@ export function SettingsModal({ open, onClose }: Props) {
           </div>
         )}
 
-        {/* Footer always visible */}
+        {/* Footer */}
         <div
           className="flex items-center justify-between px-6 py-4 flex-shrink-0"
           style={{ borderTop: "1px solid var(--md-border)" }}
@@ -466,12 +498,24 @@ export function SettingsModal({ open, onClose }: Props) {
           >
             {t("settings.reset")}
           </button>
-          <button
-            onClick={() => { host.notify("Settings saved", "info"); onClose(); }}
-            className="text-sm px-4 py-1.5 rounded-md bg-blue-500 hover:bg-blue-600 text-white"
-          >
-            {t("settings.done")}
-          </button>
+          {tab === "general" ? (
+            <span />
+          ) : (
+            <button
+              onClick={() => { commitAI(); onClose(); }}
+              disabled={!aiChanged}
+              className="text-sm px-4 py-1.5 rounded-md border"
+              style={{
+                color: aiChanged ? "#fff" : "var(--md-muted)",
+                background: aiChanged ? "var(--md-accent)" : "var(--md-code-bg)",
+                borderColor: aiChanged ? "var(--md-accent)" : "var(--md-border)",
+                cursor: aiChanged ? "pointer" : "not-allowed",
+                opacity: aiChanged ? 1 : 0.5,
+              }}
+            >
+              {t("settings.done")}
+            </button>
+          )}
         </div>
       </div>
     </div>

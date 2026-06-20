@@ -12,6 +12,7 @@ import { SearchBar } from "./editor/SearchBar";
 import { useSearch } from "./editor/useSearch";
 import { WysiwygToc } from "@/components/WysiwygToc";
 import { applyGithubTheme } from "./themes/loadTheme";
+import frameDark from "@milkdown/crepe/theme/frame-dark.css?url";
 
 interface Props {
   file: LoadedFile;
@@ -46,6 +47,23 @@ export function MarkdownPreview({ file, setContent }: Props) {
   }, [ctxMenu]);
 
   useEffect(() => { applyGithubTheme(isDark); }, [isDark]);
+
+  // Inject Milkdown dark theme CSS when dark mode is active.
+  // The light theme is statically imported in MarkdownEditor.tsx as the base.
+  useEffect(() => {
+    const id = "md-crepe-dark";
+    if (isDark) {
+      if (!document.getElementById(id)) {
+        const link = document.createElement("link");
+        link.id = id;
+        link.rel = "stylesheet";
+        link.href = frameDark;
+        document.head.appendChild(link);
+      }
+    } else {
+      document.getElementById(id)?.remove();
+    }
+  }, [isDark]);
 
   // Inject font settings.
   useEffect(() => {

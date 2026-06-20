@@ -171,6 +171,12 @@ html, body, #root {
   font-weight: 600;
   color: var(--md-fg);
 }
+.toolbar button.md-mode-btn-active {
+  background: var(--md-code-bg);
+  border-color: var(--md-border);
+  font-weight: 600;
+  color: var(--md-fg);
+}
 
 /* Tailwind Preflight strips list markers — restore inside markdown-body */
 .markdown-body ul,

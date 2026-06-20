@@ -26,6 +26,8 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
   const [outline, setOutline] = useState<PdfOutlineNode[] | null>(null);
   const [outlineLoading, setOutlineLoading] = useState(true);
   const [pageText, setPageText] = useState("");
+  const [textItems, setTextItems] = useState<Array<{ str: string; tx: number; ty: number; fs: number }>>([]);
+  const [canvasSize, setCanvasSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasScrollRef = useRef<HTMLDivElement | null>(null);
   const outlineScrollRef = useRef<HTMLDivElement | null>(null);
@@ -96,6 +98,7 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
         canvas.height = Math.floor(viewport.height * dpr);
         canvas.style.width = `${Math.floor(viewport.width)}px`;
         canvas.style.height = `${Math.floor(viewport.height)}px`;
+        setCanvasSize({ w: Math.floor(viewport.width), h: Math.floor(viewport.height) });
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         renderTask = page.render({ canvasContext: ctx, viewport });
         await renderTask.promise;
@@ -123,9 +126,15 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
         const page = await doc.getPage(currentPage);
         if (cancelled) return;
         const tc = await page.getTextContent();
-        const text = tc.items.map((it: unknown) => (it as { str?: string }).str ?? "").join(" ");
+        const items = tc.items.map((it: unknown) => {
+          const item = it as { str?: string; transform?: number[]; height?: number };
+          const tr = item.transform ?? [1, 0, 0, 1, 0, 0];
+          return { str: item.str ?? "", tx: tr[4], ty: tr[5], fs: (item.height ?? Math.abs(tr[0])) || 12 };
+        });
+        const text = items.map((i) => i.str).join(" ");
         if (!cancelled) {
           setPageText(text);
+          setTextItems(items);
           setPdfPageText(currentPage, text);
         }
       } catch { /* text extraction is best-effort */ }
@@ -253,7 +262,44 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
         {error && <div className="empty-state"><div className="title" style={{ color: "#ef4444" }}>{t("pdf.error")}</div><div className="hint">{error}</div></div>}
           {!loading && !error && (
             <div className="flex justify-center py-6">
-              <canvas ref={canvasRef} className="shadow-lg" style={{ background: "white" }} />
+              <div style={{ position: "relative", display: "inline-block" }}>
+                <canvas ref={canvasRef} className="shadow-lg" style={{ background: "white" }} />
+                {textItems.length > 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      pointerEvents: "auto",
+                      userSelect: "text",
+                      cursor: "text",
+                    }}
+                  >
+                    {textItems.map((item, i) => {
+                      const left = item.tx * scale;
+                      const top = canvasSize.h - item.ty * scale;
+                      return (
+                        <span
+                          key={i}
+                          style={{
+                            position: "absolute",
+                            left,
+                            top,
+                            fontSize: `${item.fs * scale}px`,
+                            color: "transparent",
+                            whiteSpace: "pre",
+                            lineHeight: 1,
+                          }}
+                        >
+                          {item.str}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

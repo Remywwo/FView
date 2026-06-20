@@ -5,7 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2026-06-20
+
+### Changed
+- **Markdown engine migrated to Milkdown Crepe** — WYSIWYG editor replacing ByteMD/TipTap
+  - Floating formatting toolbar on text selection
+  - Slash commands (`/`) to insert blocks, tables, code, math
+  - Built-in tables, KaTeX math, code highlighting (CodeMirror)
+  - Task lists, GFM support
+  - Search & highlight (`⌘F`) with floating search bar and match navigation
+- Settings UX: General tab auto-saves immediately (no confirm needed); AI tab defers to explicit confirm
+- All HelpModal strings extracted to i18n; ordered lists with visible numbering
+- Website docs updated for Milkdown features
+
+### Added
+- ProseMirror DecorationSet-based search match highlighting (yellow/orange)
+- `coordsAtPos` scroll-to-match navigation
+- Dynamic Milkdown theme switching (frame/frame-dark)
+- Theme plugin registry (`registerTheme` / `unregisterTheme`) for extension-based themes
+
+### Removed
+- ByteMD editor and all 7 plugins (GFM, highlight, frontmatter, gemoji, math, medium-zoom, mermaid)
+- TipTap editor and all custom extensions (Table, Math, Mermaid, Emoji, Frontmatter, Image, ZoomableImage)
+- 14 `@tiptap/*` packages, `tiptap-markdown`, `lowlight`, `markdown-it-*` dependencies
+- 32 theme CSS files (only GitHub theme kept for app chrome)
+- View mode buttons (Split / Write / Preview) and `⌘P` cycle shortcut
 
 ## [0.3.2] - 2026-06-20
 

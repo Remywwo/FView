@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { ExtensionManifest, ExtensionContext } from "@/plugins/types";
 import type { ConcreteHostAPI } from "@/plugins/host";
 import { useRegisterCommand } from "@/hooks/useCommands";
@@ -7,10 +7,10 @@ import { ChatPanel } from "./ui/ChatPanel";
 import { useAIProvider } from "./hooks/useAIProvider";
 
 /** Module-level signal — PdfPreview calls this to open the panel with a question. */
-let panelTrigger: ((q: string) => void) | null = null;
+let panelTrigger: ((q: string, autoSend?: boolean) => void) | null = null;
 
-export function triggerAIPanel(question: string) {
-  panelTrigger?.(question);
+export function triggerAIPanel(question: string, autoSend = false) {
+  panelTrigger?.(question, autoSend);
 }
 
 /**
@@ -24,6 +24,7 @@ function AIPanelSlot({ ctx }: { ctx: ExtensionContext }) {
   const [initialQuestion, setInitialQuestion] = useState<string | null>(null);
   const [compact, setCompact] = useState(false);
   const [clearKey, setClearKey] = useState(0);
+  const pendingInputRef = useRef<string | null>(null);
   const { settings } = useSettings();
   const aiProvider = useAIProvider();
   const getProvider = useCallback(() => aiProvider, [aiProvider]);
@@ -90,8 +91,16 @@ function AIPanelSlot({ ctx }: { ctx: ExtensionContext }) {
 
   // Module-level trigger so external code can open the panel with a question.
   useEffect(() => {
-    panelTrigger = (q: string) => {
-      setInitialQuestion(q);
+    panelTrigger = (q: string, autoSend = false) => {
+      if (autoSend) {
+        setInitialQuestion(q);
+      } else {
+        // Just open panel and let the input be focused — no auto-send.
+        // The question will be set via a separate mechanism.
+        setInitialQuestion(null);
+        // Store the pending input separately for ChatPanel to pick up.
+        pendingInputRef.current = q;
+      }
       setCompact(false);
       setOpen(true);
       requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
@@ -173,7 +182,7 @@ function AIPanelSlot({ ctx }: { ctx: ExtensionContext }) {
           pointerEvents: open ? "auto" : "none",
         }}
       >
-        <ChatPanel provider={getProvider} onClose={close} compact={compact} initialQuestion={initialQuestion} clearKey={clearKey} />
+        <ChatPanel provider={getProvider} onClose={close} compact={compact} initialQuestion={initialQuestion} clearKey={clearKey} pendingInput={pendingInputRef.current} />
       </div>
     </>
   );

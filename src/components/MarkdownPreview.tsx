@@ -397,7 +397,23 @@ export function MarkdownPreview({ file, setContent, onSelectionChange }: Props) 
   }, [viewMode]);
 
   return (
-    <div className="flex flex-col" style={{ position: "absolute", inset: 0 }}>
+    <div className="flex flex-col" style={{ position: "absolute", inset: 0 }}
+      onContextMenu={(e) => {
+        // Check DOM selection first (preview mode)
+        const domSel = window.getSelection()?.toString().trim();
+        if (domSel) {
+          e.preventDefault();
+          setCtxMenu({ x: e.clientX, y: e.clientY, text: domSel });
+          return;
+        }
+        // Fallback: CM5 editor selection
+        const cm = containerRef.current?.querySelector(".CodeMirror") as any;
+        const sel = cm?.CodeMirror?.getSelection?.();
+        if (sel) {
+          e.preventDefault();
+          setCtxMenu({ x: e.clientX, y: e.clientY, text: sel });
+        }
+      }}>
       {/* top bar: mode buttons + theme */}
       <div style={{
         display: "flex", alignItems: "center", gap: 8,

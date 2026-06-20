@@ -14,11 +14,13 @@ interface Props {
   compact?: boolean;
   /** Pre-filled question, auto-sent on mount. */
   initialQuestion?: string | null;
+  /** Pending input to pre-fill (but NOT auto-send). Focus follows. */
+  pendingInput?: string | null;
   /** When this changes, messages are cleared (e.g. file closed). */
   clearKey?: number;
 }
 
-export function ChatPanel({ provider, onClose, compact: startCompact, initialQuestion, clearKey }: Props) {
+export function ChatPanel({ provider, onClose, compact: startCompact, initialQuestion, pendingInput, clearKey }: Props) {
   const { t } = useI18n();
   const { host } = useExtensionContext();
   const { messages, loading, send, cancel, clear } = useChat({ provider });
@@ -37,7 +39,23 @@ export function ChatPanel({ provider, onClose, compact: startCompact, initialQue
     if (clearKey && clearKey > 0) clear();
   }, [clearKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Handle pending input from external triggers (e.g. right-click "Ask AI").
   useEffect(() => {
+    if (pendingInput) {
+      setCompact(false);
+      setInput(pendingInput);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [pendingInput]);
+
+  useEffect(() => {
+    if (pendingInput) {
+      setCompact(false);
+      setInput(pendingInput);
+      // Focus on next frame so the textarea is rendered.
+      requestAnimationFrame(() => inputRef.current?.focus());
+      return;
+    }
     if (initialQuestion) {
       setCompact(false);
       send(initialQuestion);

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-06-23
+
+### Added
+- **DOCX (Microsoft Word) preview** — read-only, supports inline images via base64
+  - `docx-preview` rendered through a new `DocxPreview` component, dynamically imported (own Vite chunk: 172.86 KB / 50.70 KB gzip)
+  - Renders headings, lists, tables, blockquotes, code, page chrome, headers/footers, footnotes/endnotes
+  - Read-only convention: `Save` / `Save As` buttons disabled for .docx (mirrors PDF/Image)
+  - New `Word` filter in the file-open dialog
+  - File-type detection: `detectFile()` returns `kind: "docx"` for `.docx`
+  - File loader: `.docx` files take the binary read path (`binaryBytes: Uint8Array`)
+- Folder tree: `.docx` files render with the Microsoft Word brand-blue icon (`#2b579a`)
+- i18n: en/zh `app.docxLoading`, `app.docxError`, `help.docxRow`; `app.supports` updated in both locales
+- Help modal: new `Word · .docx · read-only` row in the Supported File Types table
+
+### Changed
+- Dark mode CSS for DOCX: overrides docx-preview's hardcoded white page chrome and inline `style="color:…"` run colors using `!important` plus higher-specificity selectors (`.docx-preview-container .docx-wrapper > section.docx`); spans/divs/strong/em/etc. covered
+
 ## [0.4.0] - 2026-06-20
 
 ### Changed

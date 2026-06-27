@@ -260,24 +260,32 @@ pub fn run() {
         .setup(|app| {
             use tauri::{WebviewUrl, WebviewWindowBuilder};
 
-            let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
-                .title("FView Power")
-                .inner_size(1440.0, 900.0)
-                .min_inner_size(600.0, 400.0)
-                .resizable(true)
-                .center()
-                .decorations(true)
-                .hidden_title(true);
-
             #[cfg(target_os = "macos")]
-            let builder = {
-                use tauri::LogicalPosition;
-                builder
+            {
+                WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
+                    .title("FView Power")
+                    .inner_size(1440.0, 900.0)
+                    .min_inner_size(600.0, 400.0)
+                    .resizable(true)
+                    .center()
+                    .decorations(true)
+                    .hidden_title(true)
                     .title_bar_style(tauri::TitleBarStyle::Overlay)
-                    .traffic_light_position(LogicalPosition::new(12.0, 24.0))
-            };
+                    .traffic_light_position(tauri::LogicalPosition::new(12.0, 24.0))
+                    .build()?;
+            }
 
-            builder.build()?;
+            #[cfg(not(target_os = "macos"))]
+            {
+                WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
+                    .title("FView Power")
+                    .inner_size(1440.0, 900.0)
+                    .min_inner_size(600.0, 400.0)
+                    .resizable(true)
+                    .center()
+                    .decorations(true)
+                    .build()?;
+            }
 
             Ok(())
         })

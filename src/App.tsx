@@ -214,7 +214,7 @@ export default function App() {
   return (
     <PluginProvider host={host} extensions={extensions}>
       <div className="flex flex-col h-full">
-        <div className="toolbar app-toolbar" data-tauri-drag-region>
+        <div className="toolbar app-toolbar" data-tauri-drag-region style={isMacPlatform() ? { paddingLeft: 85 } : undefined}>
         <div className="open-menu" ref={openMenuRef}>
           <button
             onClick={() => setOpenMenuOpen((v) => !v)}

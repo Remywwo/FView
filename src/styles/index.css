@@ -746,7 +746,6 @@ html, body {
 
 /* Main app toolbar — sits in titlebar area with traffic lights */
 .app-toolbar {
-  padding-left: 85px;
   border-bottom: 1px solid var(--md-border);
   background: color-mix(in srgb, var(--md-bg) 75%, transparent);
   backdrop-filter: blur(12px);

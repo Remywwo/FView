@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-06-27
+
+### Added
+- **Native macOS traffic lights in title bar** — switched from a custom HTML/CSS chrome to Tauri 2's `TitleBarStyle::Overlay` + `hiddenTitle` + `traffic_light_position(12, 24)`, so the window uses the real system red/yellow/green buttons positioned to align with the app toolbar
+- **macOS-frameless window setup via Rust** — `WebviewWindowBuilder` now constructs the window at startup with `Overlay` title bar, `macOSPrivateApi` enabled
+- **PDF text selection** — uses `pdfjs-dist` `TextLayer` to overlay transparent text on the PDF canvas; sync `--scale-factor` / `--scale-round-x/y` so spans stay aligned with canvas pixels at any zoom
+- **PDF floating toolbar** — page navigation, jump-to-page input, and zoom controls moved to a centered bottom floating bar; content area gets `paddingBottom: 72px` to clear the bar
+- **Image preview floating zoom bar** — fixed-width (220px) bottom floating bar with opaque background; auto-fit zoom on open, 999% max, drag-to-pan when image overflows, `Ctrl++ / Ctrl+- / Ctrl+0` shortcuts, click-to-edit zoom percentage
+- **AI panel portal + per-area positioning** — AI panel renders via `createPortal` to `document.body` (escapes toolbar's `backdrop-filter` containing block); `PdfPreview` sets `--ai-panel-bottom: 100px` via `document.documentElement` so the panel sits above the floating toolbar without the AI plugin knowing about PDF
+- **Frosted-glass app toolbar** — main toolbar uses `backdrop-filter: blur(12px)` with 75% translucent background; sits in the title-bar area (left padding 85px for traffic lights); `z-index: 100`; `data-tauri-drag-region` for window drag
+
+### Changed
+- **Toolbar CSS split** — base `.toolbar` (flex/gap/padding/height/font) shared by all previews; new `.app-toolbar` class for the main window's titlebar-integrated toolbar only
+- **AI panel validation priority** — checks file-type support before checking API-key configuration, so unsupported files always notify "AI only supports Markdown and PDF" regardless of provider state
+- **AI panel `compact` mode removed** — panel no longer auto-opens on PDF load; user clicks ✨ AI to open it
+
+### Fixed
+- **AI panel positioning** — was constrained to the toolbar due to `backdrop-filter` creating a new containing block; fixed by rendering to `document.body` via `createPortal`
+- **Image preview scrolling at high zoom** — replaced CSS `transform: scale()` with explicit `width`/`height` from natural dimensions; overrode Tailwind's `img { max-width: 100% }` reset with `maxWidth: "none"`
+- **Image preview drag-to-pan** — works in all four directions (was previously locked to vertical scrolling only because the scroll container's overflow wasn't being detected after CSS transform)
+- **Save As** — `saveAs` no longer switches the active file to the copy; original stays active with dirty flag preserved and a toast confirms the new path
+- **Markdown/ProseMirror vs external file drag-drop conflict** — `DropZone` now checks `isOverMarkdownEditor()` via `document.elementFromPoint` (with `devicePixelRatio` scaling) and skips forwarding drops that land on `[data-md-editor]`
+
 ## [0.6.0] - 2026-06-23
 
 ### Added

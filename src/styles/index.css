@@ -1068,3 +1068,10 @@ html, body {
   padding: 0.75rem;
   text-align: center;
 }
+
+/* PDF text layer — keep selection stable across scale transforms */
+.textLayer,
+.textLayer * {
+  user-select: text;
+  -webkit-user-select: text;
+}

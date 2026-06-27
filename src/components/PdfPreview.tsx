@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import * as pdfjs from "pdfjs-dist";
+import { TextLayer } from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import "pdfjs-dist/web/pdf_viewer.css";
 import type { LoadedFile } from "@/hooks/useFileLoader";
 import { buildOutlineTree, PdfOutlineDrawer, type PdfOutlineNode } from "@/components/PdfOutlineDrawer";
 import { useI18n } from "@/hooks/useI18n";
@@ -33,6 +35,8 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
   const [outlineLoading, setOutlineLoading] = useState(true);
   const [pageText, setPageText] = useState("");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasWrapRef = useRef<HTMLDivElement | null>(null);
+  const textLayerRef = useRef<HTMLDivElement | null>(null);
   const canvasScrollRef = useRef<HTMLDivElement | null>(null);
   const outlineScrollRef = useRef<HTMLDivElement | null>(null);
   const hoveredAreaRef = useRef<"canvas" | "outline" | null>(null);
@@ -88,6 +92,7 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
     if (!canvasRef.current) return;
     let cancelled = false;
     let renderTask: pdfjs.RenderTask | null = null;
+    let textLayer: TextLayer | null = null;
     const doc = docRef.current; // capture into local — never cross-doc via ref
     if (!doc || currentPage < 1 || currentPage > pages) return;
     (async () => {
@@ -105,6 +110,30 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         renderTask = page.render({ canvasContext: ctx, viewport });
         await renderTask.promise;
+
+        // Render text layer for selection
+        if (textLayerRef.current && !cancelled) {
+          const container = textLayerRef.current;
+          container.innerHTML = "";
+          // Sync scale-factor so text layer's CSS transforms align with the canvas.
+          // setLayerDimensions uses --scale-factor to compute container size, and
+          // each span uses it as transform: scale(). We must use the user-scale
+          // only — canvas physical pixels are scaled by the same factor via its
+          // own CSS width/height.
+          if (canvasWrapRef.current) {
+            canvasWrapRef.current.style.setProperty("--scale-factor", String(scale));
+            canvasWrapRef.current.style.setProperty("--scale-round-x", "1px");
+            canvasWrapRef.current.style.setProperty("--scale-round-y", "1px");
+          }
+          const textContent = await page.streamTextContent();
+          if (cancelled) return;
+          textLayer = new TextLayer({
+            textContentSource: textContent,
+            container,
+            viewport,
+          });
+          await textLayer.render();
+        }
       } catch (e: any) {
         if (e?.name !== "RenderingCancelledException") {
           console.error("PDF render error", e);
@@ -115,6 +144,9 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
       cancelled = true;
       if (renderTask) {
         try { renderTask.cancel(); } catch {}
+      }
+      if (textLayer) {
+        try { textLayer.cancel(); } catch {}
       }
     };
   }, [currentPage, scale, pages]);
@@ -211,7 +243,10 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
         {error && <div className="empty-state"><div className="title" style={{ color: "#ef4444" }}>{t("pdf.error")}</div><div className="hint">{error}</div></div>}
           {!loading && !error && (
             <div className="flex justify-center py-6">
-              <canvas ref={canvasRef} className="shadow-lg" style={{ background: "white" }} />
+              <div ref={canvasWrapRef} style={{ position: "relative" }}>
+                <canvas ref={canvasRef} className="shadow-lg" style={{ background: "white" }} />
+                <div ref={textLayerRef} className="textLayer" style={{ position: "absolute", top: 0, left: 0 }} />
+              </div>
             </div>
           )}
         </div>

@@ -258,23 +258,24 @@ pub fn run() {
             stop_html_server,
         ])
         .setup(|app| {
-            use tauri::{TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
+            use tauri::{WebviewUrl, WebviewWindowBuilder};
 
-            let mut builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
+            let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
                 .title("FView Power")
                 .inner_size(1440.0, 900.0)
                 .min_inner_size(600.0, 400.0)
                 .resizable(true)
                 .center()
                 .decorations(true)
-                .title_bar_style(TitleBarStyle::Overlay)
                 .hidden_title(true);
 
             #[cfg(target_os = "macos")]
-            {
+            let builder = {
                 use tauri::LogicalPosition;
-                builder = builder.traffic_light_position(LogicalPosition::new(12.0, 24.0));
-            }
+                builder
+                    .title_bar_style(tauri::TitleBarStyle::Overlay)
+                    .traffic_light_position(LogicalPosition::new(12.0, 24.0))
+            };
 
             builder.build()?;
 

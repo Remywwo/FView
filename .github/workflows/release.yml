@@ -91,10 +91,9 @@ jobs:
             /^## \[/ { if (found) exit; if ($0 ~ "## \\[" ver "\\]") found=1; next }
             found { print }
           ' CHANGELOG.md)
-          # Escape multi-line string for GitHub Actions output
-          NOTES="${NOTES//$'\n'/'%0A'}"
-          NOTES="${NOTES//$'\r'/'%0D'}"
-          echo "notes=$NOTES" >> $GITHUB_OUTPUT
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Build Tauri
         uses: tauri-apps/tauri-action@v0

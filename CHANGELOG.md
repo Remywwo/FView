@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.5] - 2026-06-30
+
+### Fixed
+- **SVG files now render as images** — SVG was previously mis-classified as HTML (`.svg` appeared in `CODE_LANGUAGES.html.extensions`) and opened in the HTML editor with iframe preview. Now correctly routed to `ImagePreview` with proper zoom/drag/reset toolbar.
+- **SVG rendering via inline DOM** — Tauri/WKWebView cannot reliably decode `image/svg+xml` through `<img>` tag blob/data URLs (renders as broken image icon). SVG content is now injected directly into the DOM via `dangerouslySetInnerHTML`, bypassing URL/mime negotiation entirely. Nominal dimensions are parsed from the root `<svg>` element's `width`/`height`/`viewBox` attributes so the scale-to-fit logic works identically to raster images. Non-SVG images (PNG/JPG/GIF/WebP/AVIF/BMP/TIFF/ICO) are unaffected and remain on the `<img>` + blob URL path.
+
 ## [0.7.4] - 2026-06-28
 
 ### Fixed

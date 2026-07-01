@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { CodeHighlightNode, CodeNode } from "@lexical/code";
+import { CodeHighlightNode, CodeNode, registerCodeHighlighting } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { ListItemNode, ListNode } from "@lexical/list";
 import { $convertFromMarkdownString, $convertToMarkdownString, TRANSFORMERS } from "@lexical/markdown";
@@ -12,10 +12,13 @@ import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
 import type { LexicalEditor } from "lexical";
 import { $getRoot } from "lexical";
+import { SlashCommandPlugin } from "./SlashCommandPlugin";
+import { TableActionPlugin } from "./TableActionPlugin";
 
 export type MarkdownEditorHandle = LexicalEditor;
 
@@ -113,6 +116,16 @@ function MarkdownSyncPlugin({
   return null;
 }
 
+function CodeHighlightPlugin() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return registerCodeHighlighting(editor);
+  }, [editor]);
+
+  return null;
+}
+
 export function useLexicalMarkdownEditor({
   content,
   onContentChange,
@@ -166,7 +179,11 @@ export function useLexicalMarkdownEditor({
       <HistoryPlugin />
       <ListPlugin />
       <LinkPlugin />
+      <TablePlugin hasCellMerge={false} />
+      <TableActionPlugin />
+      <CodeHighlightPlugin />
       <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+      <SlashCommandPlugin />
       <MarkdownSyncPlugin
         content={content}
         onContentChange={onContentChange}

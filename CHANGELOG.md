@@ -5,7 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.7.5] - 2026-06-30
+## [0.8.0] - 2026-07-02
+
+### Added
+- **Two-pane layout** — resizable sidebar (290–480 px) with folder tree / document outline tabs, file actions, and settings/help/AI buttons.
+- **Document Switcher** (`⌘P`) — floating toolbar pill for searching and switching files across open folder, recent files, and current path.
+- **Floating toolbar** — frosted glass pill at the top of the content area, only visible when a file is open.
+- **Native macOS File menu** — Open, Open Folder, Save, Save As, Close with standard keyboard shortcuts.
+- **Sidebar outline** — persistent table of contents for Markdown headings and PDF bookmarks with active tracking.
+- **Code editor context menu** — right-click for Format, Copy, Cut, Paste.
+- **HTML editor context menu** — right-click for Copy Source, Reload; editor right-click for Format, Copy, Cut, Paste.
+- **PDF bottom toolbar** — frosted glass pill with page navigation, go-to-page, and zoom controls.
+- **Image bottom toolbar** — unified frosted glass pill with zoom controls and click-to-edit percentage.
+- **DOCX AI support** — right-click selected text → Ask AI.
+- **Resizable sidebar** — drag the right edge, width persisted to localStorage.
+- **Apple-style Markdown theme** — SF Pro typography, frosted glass surfaces, layered shadows, accent tints.
+- **Table of contents placeholder** — shows "No outline" when a file has no TOC data.
+
+### Changed
+- **AI Assistant** — panel repositions to bottom center of the content area; supports Markdown, PDF, and DOCX. Config validation on right-click Ask AI.
+- **AI Assistant** — clears conversation context when switching files.
+- **Sidebar** — folder header removed, tabs replaced with icon toggle button.
+- **Toolbar** — simplified to floating translucent pill; background transparent, full-width, drag region for macOS.
+- **Preview panels** — all preview types now have unified rounded corners (8px), padding, and layered shadows.
+- **Folder tree** — root node shows close button on hover; taller row heights for readability.
+- **Scrollbars hidden** in sidebar for cleaner look.
+- **Markdown** — removed h1 top gradient divider; tables have soft double-layer shadows.
+- **Website** — updated screenshots to reflect current UI; WebP format for performance.
+
+### Fixed
+- **Table header styling** — header cells now visually distinct from body cells.
+- **TOC click navigation** — scroll target correctly resolves `.md-prose-root` instead of wrapper div.
+- **Theme background** — body uses `var(--md-bg)` so transparent toolbar blends correctly in both light and dark modes.
+- **AI button visibility** — relocated from toolbar to sidebar bottom with proper styling.
+
+## [0.7.6] - 2026-07-01
 
 ### Fixed
 - **SVG files now render as images** — SVG was previously mis-classified as HTML (`.svg` appeared in `CODE_LANGUAGES.html.extensions`) and opened in the HTML editor with iframe preview. Now correctly routed to `ImagePreview` with proper zoom/drag/reset toolbar.

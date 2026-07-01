@@ -79,6 +79,7 @@ export function HelpModal({ open, onClose }: Props) {
             <tbody>
               <tr><td><Kbd mac="⌘O" win="Ctrl+O" /></td><td>{t("app.openFile")}</td></tr>
               <tr><td><Kbd mac="⇧⌘O" win="Ctrl+Shift+O" /></td><td>{t("app.openFolder")}</td></tr>
+              <tr><td><Kbd mac="⌘P" win="Ctrl+P" /></td><td>{t("help.switchDoc")}</td></tr>
               <tr><td><Kbd mac="⌘S" win="Ctrl+S" /></td><td>{t("app.save")}</td></tr>
               <tr><td><Kbd mac="⇧⌘S" win="Ctrl+Shift+S" /></td><td>{t("app.saveAs")}</td></tr>
               <tr><td><Kbd mac="⌘W" win="Ctrl+W" /></td><td>{t("app.close")}</td></tr>
@@ -110,14 +111,20 @@ export function HelpModal({ open, onClose }: Props) {
             </thead>
             <tbody>
               <tr><td><Kbd mac="⌘G" win="Ctrl+G" /></td><td>{t("pdf.gotoTitle")}</td></tr>
-              <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>{t("pdf.prevTitle")} / {t("pdf.nextTitle")}</td></tr>
-              <tr><td><kbd>PageUp</kbd> / <kbd>PageDown</kbd></td><td>{t("pdf.prevTitle")} / {t("pdf.nextTitle")}</td></tr>
+              <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>{t("help.pdfPrevPage")} / {t("help.pdfNextPage")}</td></tr>
+              <tr><td><kbd>PageUp</kbd> / <kbd>PageDown</kbd></td><td>{t("help.pdfPrevPage")} / {t("help.pdfNextPage")}</td></tr>
               <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>{t("help.pdfScroll")}</td></tr>
               <tr><td><Kbd mac="⇧↑ / ⇧↓" win="Shift+↑ / Shift+↓" /></td><td>{t("help.pdfScrollByScreen")}</td></tr>
               <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>{t("help.pdfFirstLast")}</td></tr>
             </tbody>
           </table>
           <p>{t("help.pdfHint")}</p>
+
+          <h3>{t("help.hCode")}</h3>
+          <p>{t("help.codeHint")}</p>
+
+          <h3>{t("help.hImage")}</h3>
+          <p>{t("help.imageHint")}</p>
 
           <h3>{t("help.hAi")}</h3>
           <table>
@@ -127,11 +134,17 @@ export function HelpModal({ open, onClose }: Props) {
             <tbody>
               <tr><td><Kbd mac="⌘⇧Y" win="Ctrl+Shift+Y" /></td><td>{t("help.aiSummary")}</td></tr>
               <tr><td><Kbd mac="⌘⇧E" win="Ctrl+Shift+E" /></td><td>{t("help.aiExplain")}</td></tr>
+              <tr><td><Kbd mac="⌘⇧A" win="Ctrl+Shift+A" /></td><td>{t("help.aiToggle")}</td></tr>
             </tbody>
           </table>
           <p style={{ color: "var(--md-muted)", fontSize: "0.92em" }}>
             {t("help.aiNote")}
           </p>
+
+          <h2>{t("help.hLayout")}</h2>
+          <p>{t("help.layoutP1")}</p>
+          <p>{t("help.layoutP2")}</p>
+          <p>{t("help.layoutP3")}</p>
 
           <h2>{t("help.hTypes")}</h2>
           <table>

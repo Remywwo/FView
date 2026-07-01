@@ -109,22 +109,6 @@ export function FolderTree({ root, selectedPath, onSelectFile, onClose, onRefres
 
   return (
     <aside className="folder-sidebar" onClick={closeCtxMenu}>
-      <div className="folder-sidebar-header">
-        <span className="folder-sidebar-title" title={root.path}>{root.name}</span>
-        <button onClick={onRefresh} disabled={loading} title={t("folder.refresh")} aria-label={t("folder.refresh")}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="13" height="13" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            style={{ animation: loading ? "folder-spin 0.8s linear infinite" : undefined }}
-          >
-            <polyline points="23 4 23 10 17 10" />
-            <polyline points="1 20 1 14 7 14" />
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-          </svg>
-        </button>
-        <button onClick={onClose} title={t("folder.close")} aria-label={t("folder.close")}>×</button>
-      </div>
       <div className="folder-sidebar-body">
         {error && <div className="folder-error">{error}</div>}
         <ul className="folder-tree">
@@ -136,6 +120,7 @@ export function FolderTree({ root, selectedPath, onSelectFile, onClose, onRefres
             onToggle={toggle}
             onSelectFile={onSelectFile}
             onContextMenu={handleContextMenu}
+            onClose={onClose}
           />
         </ul>
       </div>
@@ -235,9 +220,10 @@ interface NodeProps {
   onToggle: (path: string) => void;
   onSelectFile: (path: string) => void;
   onContextMenu: (e: React.MouseEvent, path: string, isDir: boolean) => void;
+  onClose?: () => void;
 }
 
-function TreeNode({ node, depth, expanded, selectedPath, onToggle, onSelectFile, onContextMenu }: NodeProps) {
+function TreeNode({ node, depth, expanded, selectedPath, onToggle, onSelectFile, onContextMenu, onClose }: NodeProps) {
   if (!node.isDir) {
     return (
       <li>
@@ -278,6 +264,15 @@ function TreeNode({ node, depth, expanded, selectedPath, onToggle, onSelectFile,
         </span>
         <FolderIcon open={isExpanded} />
         <span className="tree-name">{node.name}</span>
+        {depth === 0 && onClose && (
+          <button
+            type="button"
+            className="tree-close-btn"
+            title="Close folder"
+            aria-label="Close folder"
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+          >×</button>
+        )}
       </div>
       {isExpanded && node.children.length > 0 && (
         <ul className="folder-tree">

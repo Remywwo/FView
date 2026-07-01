@@ -353,66 +353,30 @@ export function ImagePreview({ file }: { file: LoadedFile }) {
         )}
       </div>
 
-      {/* Floating toolbar at bottom */}
-      <div
-        className="toolbar"
-        style={{
-          position: "absolute",
-          bottom: 16,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 10,
-          borderRadius: 8,
-          boxShadow: "0 2px 16px rgba(0,0,0,0.35)",
-          width: 220,
-          background: "var(--md-bg)",
-          padding: "0.5rem 1rem",
-          height: "auto",
-          minHeight: "unset",
-          borderBottom: "none",
-        }}
-      >
+      {/* Floating toolbar at bottom — frosted glass pill */}
+      <div className="pdf-toolbar">
         <button onClick={zoomOut} title="Ctrl+−">−</button>
-        <span
-          className="file-info"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            width: "3.8em",
-            justifyContent: "center",
-            cursor: "pointer",
-            userSelect: "none",
-          }}
-          title={t("image.clickToEdit")}
-          onClick={() => { setInputVal(String(Math.round(scale * 100))); setInputFocus(true); }}
-        >
-          {inputFocus ? (
-            <input
-              type="text"
-              inputMode="numeric"
-              autoFocus
-              value={inputVal}
-              onChange={(e) => setInputVal(e.target.value)}
-              onBlur={commitScaleInput}
-              onKeyDown={onScaleInputKeyDown}
-              style={{
-                width: "100%",
-                height: "100%",
-                textAlign: "center",
-                border: "none",
-                outline: "none",
-                background: "transparent",
-                color: "inherit",
-                fontSize: "inherit",
-                fontFamily: "inherit",
-                fontWeight: "inherit",
-                padding: 0,
-              }}
-            />
-          ) : (
-            Math.round(scale * 100) + "%"
-          )}
-        </span>
+        {inputFocus ? (
+          <input
+            type="text"
+            inputMode="numeric"
+            autoFocus
+            className="pdf-toolbar-input"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            onBlur={commitScaleInput}
+            onKeyDown={onScaleInputKeyDown}
+          />
+        ) : (
+          <span
+            className="pdf-toolbar-page"
+            style={{ cursor: "pointer" }}
+            title={t("image.clickToEdit")}
+            onClick={() => { setInputVal(String(Math.round(scale * 100))); setInputFocus(true); }}
+          >
+            {Math.round(scale * 100)}%
+          </span>
+        )}
         <button onClick={zoomIn} title="Ctrl++">+</button>
         <button onClick={resetScale} title="Ctrl+0">{t("image.reset")}</button>
       </div>

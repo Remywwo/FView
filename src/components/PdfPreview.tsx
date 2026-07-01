@@ -5,7 +5,7 @@ import { TextLayer } from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import "pdfjs-dist/web/pdf_viewer.css";
 import type { LoadedFile } from "@/hooks/useFileLoader";
-import { buildOutlineTree, PdfOutlineDrawer, type PdfOutlineNode } from "@/components/PdfOutlineDrawer";
+import { buildOutlineTree, type PdfOutlineNode } from "@/components/PdfOutlineDrawer";
 import { useI18n } from "@/hooks/useI18n";
 import {
   setPdfPageText,
@@ -17,16 +17,22 @@ import {
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
-export function PdfPreview({ file }: { file: LoadedFile }) {
+export function PdfPreview({ file, onOutlineReady, jumpRef }: { file: LoadedFile; onOutlineReady?: (outline: PdfOutlineNode[] | null) => void; jumpRef?: React.MutableRefObject<((page: number) => void) | null> }) {
   const { t } = useI18n();
 
   // Tell the AI panel (rendered in a portal) to sit higher above the floating toolbar
   useEffect(() => {
-    document.documentElement.style.setProperty("--ai-panel-bottom", "100px");
+    document.documentElement.style.setProperty("--ai-panel-bottom", "85px");
     return () => { document.documentElement.style.removeProperty("--ai-panel-bottom"); };
   }, []);
   const [pages, setPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Expose page-jump for sidebar outline
+  useEffect(() => {
+    if (jumpRef) jumpRef.current = setCurrentPage;
+    return () => { if (jumpRef) jumpRef.current = null; };
+  }, [jumpRef, setCurrentPage]);
   const [scale, setScale] = useState(1.4);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,8 +44,7 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
   const canvasWrapRef = useRef<HTMLDivElement | null>(null);
   const textLayerRef = useRef<HTMLDivElement | null>(null);
   const canvasScrollRef = useRef<HTMLDivElement | null>(null);
-  const outlineScrollRef = useRef<HTMLDivElement | null>(null);
-  const hoveredAreaRef = useRef<"canvas" | "outline" | null>(null);
+  const hoveredAreaRef = useRef<"canvas" | null>(null);
   const jumpInputRef = useRef<HTMLInputElement | null>(null);
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
 
@@ -73,6 +78,7 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
           if (cancelled) return;
           setOutline(tree);
           setPdfOutline(tree);
+          onOutlineReady?.(tree);
         } catch (e) {
           console.warn("Failed to load PDF outline", e);
         } finally {
@@ -192,9 +198,7 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
       if (e.key === "ArrowUp" || e.key === "ArrowDown") {
         e.preventDefault();
         const dir = e.key === "ArrowDown" ? 1 : -1;
-        const targetEl = hoveredAreaRef.current === "outline"
-          ? outlineScrollRef.current
-          : canvasScrollRef.current;
+        const targetEl = canvasScrollRef.current;
         if (targetEl) {
           const step = e.shiftKey ? targetEl.clientHeight - 40 : 60;
           targetEl.scrollTop += dir * step;
@@ -235,7 +239,7 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
       <div className="h-full relative" style={{ background: "var(--md-code-bg)" }}>
         <div
           ref={canvasScrollRef}
-          className="h-full overflow-auto" style={{ paddingBottom: 72 }}
+          className="h-full overflow-auto" style={{ paddingBottom: 54, paddingTop: 30 }}
           onMouseEnter={() => { hoveredAreaRef.current = "canvas"; }}
           onMouseLeave={() => { if (hoveredAreaRef.current === "canvas") hoveredAreaRef.current = null; }}
         >
@@ -250,43 +254,19 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
             </div>
           )}
         </div>
-        <PdfOutlineDrawer
-          ref={outlineScrollRef}
-          outline={outline}
-          loading={outlineLoading}
-          currentPage={currentPage}
-          onJump={setCurrentPage}
-        />
       </div>
 
-      {/* Floating toolbar at bottom */}
-      <div
-        className="toolbar"
-        style={{
-          position: "absolute",
-          bottom: 16,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 10,
-          borderRadius: 8,
-          boxShadow: "0 2px 16px rgba(0,0,0,0.35)",
-          width: "fit-content",
-          maxWidth: "90vw",
-          background: "var(--md-bg)",
-          padding: "0.5rem 1rem",
-          height: "auto",
-          minHeight: "unset",
-          borderBottom: "none",
-        }}
-      >
+      {/* Floating toolbar at bottom — frosted glass pill */}
+      <div className="pdf-toolbar">
         <button onClick={goPrev} disabled={currentPage <= 1} title={t("pdf.prevTitle")}>{t("pdf.prev")}</button>
-        {pages > 0 ? `${currentPage} / ${pages}` : t("pdf.gotoPlaceholder")}
+        <span className="pdf-toolbar-page">{pages > 0 ? `${currentPage} / ${pages}` : t("pdf.gotoPlaceholder")}</span>
         <button onClick={goNext} disabled={currentPage >= pages} title={t("pdf.nextTitle")}>{t("pdf.next")}</button>
-        <span className="divider" />
-        {t("pdf.goTo")}
+        <span className="pdf-toolbar-divider" />
+        <span className="pdf-toolbar-label">{t("pdf.goTo")}</span>
         <input
           ref={jumpInputRef}
           type="number"
+          className="pdf-toolbar-input"
           min={1}
           max={pages || 1}
           value={jumpInput}
@@ -308,17 +288,10 @@ export function PdfPreview({ file }: { file: LoadedFile }) {
           disabled={pages <= 0}
           title={t("pdf.gotoTitle")}
           aria-label={t("pdf.gotoTitle")}
-          className="w-14 text-center rounded border border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 px-1 py-0.5"
-          style={{
-            background: "transparent",
-            color: "var(--md-fg)",
-            fontFamily: "JetBrains Mono, SF Mono, Menlo, monospace",
-            fontSize: "0.8em",
-          }}
         />
-        <span className="divider" />
+        <span className="pdf-toolbar-divider" />
         <button onClick={() => setScale((s) => Math.max(0.5, +(s - 0.2).toFixed(2)))}>−</button>
-        {Math.round(scale * 100)}%
+        <span className="pdf-toolbar-page">{Math.round(scale * 100)}%</span>
         <button onClick={() => setScale((s) => Math.min(4, +(s + 0.2).toFixed(2)))}>+</button>
       </div>
     </div>

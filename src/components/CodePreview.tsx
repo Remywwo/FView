@@ -1,4 +1,4 @@
-import { useMemo, useRef, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, keymap } from "@codemirror/view";
 import { searchKeymap } from "@codemirror/search";
@@ -21,11 +21,6 @@ interface Props {
   setContent: (s: string) => void;
   isDark: boolean;
   readOnly?: boolean;
-  /**
-   * Optional callback invoked whenever the editor selection changes.
-   * Receives the selected text, or an empty string when the selection
-   * is collapsed. Used by the plugin system to expose selection state.
-   */
   onSelectionChange?: (text: string) => void;
 }
 
@@ -35,26 +30,13 @@ function languageExtension(lang: string | undefined): Extension[] {
     case "javascript":
     case "typescript":
       return [javascript({ jsx: lang === "javascript", typescript: lang === "typescript" })];
-    case "python":
-      return [python()];
-    case "rust":
-      return [rust()];
-    case "json":
-      return [json()];
-    case "css":
-    case "scss":
-    case "sass":
-    case "less":
-      return [css()];
-    case "html":
-    case "vue":
-    case "svelte":
-      return [html()];
-    case "xml":
-    case "svg":
-      return [xml()];
-    default:
-      return [];
+    case "python": return [python()];
+    case "rust": return [rust()];
+    case "json": return [json()];
+    case "css": case "scss": case "sass": case "less": return [css()];
+    case "html": case "vue": case "svelte": return [html()];
+    case "xml": case "svg": return [xml()];
+    default: return [];
   }
 }
 
@@ -62,11 +44,19 @@ export function CodePreview({ file, setContent, isDark, readOnly = false, onSele
   const { settings } = useSettings();
   const { t } = useI18n();
 
-  // Hold the latest onSelectionChange so the EditorView update listener
-  // (registered once via the extensions array) always calls the freshest
-  // callback without re-binding on every render.
   const onSelectionChangeRef = useRef(onSelectionChange);
   onSelectionChangeRef.current = onSelectionChange;
+
+  // Hold a ref to the EditorView so context-menu actions can reach it.
+  const viewRef = useRef<EditorView | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [ctxMenu]);
 
   const extensions = useMemo<Extension[]>(
     () => [
@@ -78,7 +68,6 @@ export function CodePreview({ file, setContent, isDark, readOnly = false, onSele
         ".cm-line": { lineHeight: "inherit" },
         ".cm-gutters": { lineHeight: "inherit" },
       }),
-      // Report selection state to the host (PR3a).
       EditorView.updateListener.of((viewUpdate) => {
         if (!viewUpdate.selectionSet) return;
         const cb = onSelectionChangeRef.current;
@@ -97,8 +86,94 @@ export function CodePreview({ file, setContent, isDark, readOnly = false, onSele
     "--cm-line-height": String(settings.lineHeight),
   } as CSSProperties;
 
+  // ── context menu actions ──────────────────────────────────────
+  const handleFormat = useCallback(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    try {
+      // Attempt per-language formatting via CodeMirror's built-in indent.
+      const doc = view.state.doc;
+      const text = doc.toString();
+      // Re-indent: handles braces/brackets + HTML tags for mixed content.
+      const VOID = new Set(["area","base","br","col","embed","hr","img","input","link","meta","param","source","track","wbr"]);
+      const lines = text.split("\n");
+      let depth = 0;
+      const formatted = lines.map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return "";
+        // Closing tag → outdent
+        const closeTag = trimmed.match(/^<\/\s*(\w+)[^>]*>/);
+        if (closeTag) depth = Math.max(0, depth - 1);
+        if (/^[\}\)\]]/.test(trimmed)) depth = Math.max(0, depth - 1);
+        const indented = "  ".repeat(depth) + trimmed;
+        // Opening tags (not self-closing, not void)
+        const openTags = [...trimmed.matchAll(/<(\w+)(?:\s[^>]*)?>/g)]
+          .filter((m) => !trimmed.includes(`</${m[1]}>`) && !VOID.has(m[1].toLowerCase()));
+        const closeTags = [...trimmed.matchAll(/<\/\s*\w+[^>]*>/g)];
+        const bracketOpens = (trimmed.match(/[\{\(\[]/g) || []).length;
+        const bracketCloses = (trimmed.match(/[\}\)\]]/g) || []).length;
+        depth = Math.max(0, depth + openTags.length - closeTags.length + bracketOpens - bracketCloses);
+        return indented;
+      });
+      view.dispatch({ changes: { from: 0, to: doc.length, insert: formatted.join("\n") } });
+      setCtxMenu(null);
+    } catch {
+      // silently ignore format failures
+    }
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    const view = viewRef.current;
+    if (!view) return;
+    const sel = view.state.selection.main;
+    const text = sel.empty ? view.state.doc.toString() : view.state.sliceDoc(sel.from, sel.to);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // fallback silently
+    }
+    setCtxMenu(null);
+  }, []);
+
+  const handleCut = useCallback(async () => {
+    const view = viewRef.current;
+    if (!view || readOnly) return;
+    const sel = view.state.selection.main;
+    if (sel.empty) return;
+    const text = view.state.sliceDoc(sel.from, sel.to);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // fallback
+    }
+    view.dispatch({ changes: { from: sel.from, to: sel.to } });
+    setCtxMenu(null);
+  }, [readOnly]);
+
+  const handlePaste = useCallback(async () => {
+    const view = viewRef.current;
+    if (!view || readOnly) return;
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        const sel = view.state.selection.main;
+        view.dispatch({ changes: { from: sel.from, to: sel.to, insert: text } });
+      }
+    } catch {
+      // clipboard read denied
+    }
+    setCtxMenu(null);
+  }, [readOnly]);
+
   return (
-    <div className="flex flex-col h-full" data-cm-code-preview="">
+    <div
+      className="flex flex-col h-full"
+      data-cm-code-preview=""
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setCtxMenu({ x: e.clientX, y: e.clientY });
+      }}
+    >
       <div className="toolbar">
         {file.language && <span className="file-info">{file.language}</span>}
         {readOnly && (
@@ -127,9 +202,36 @@ export function CodePreview({ file, setContent, isDark, readOnly = false, onSele
             autocompletion: !readOnly,
           }}
           style={{ height: "100%", ...editorStyle }}
+          onCreateEditor={(view) => { viewRef.current = view; }}
         />
       </div>
 
+      {/* Context menu */}
+      {ctxMenu && (
+        <div
+          className="context-menu"
+          style={{ left: ctxMenu.x, top: ctxMenu.y, position: "fixed", zIndex: 200 }}
+          onMouseLeave={() => setCtxMenu(null)}
+        >
+          <button className="context-menu-item" onClick={handleFormat}>
+            {t("code.format")}
+          </button>
+          <div className="context-menu-divider" />
+          <button className="context-menu-item" onClick={handleCopy}>
+            {t("code.copy")}
+          </button>
+          {!readOnly && (
+            <>
+              <button className="context-menu-item" onClick={handleCut}>
+                {t("code.cut")}
+              </button>
+              <button className="context-menu-item" onClick={handlePaste}>
+                {t("code.paste")}
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

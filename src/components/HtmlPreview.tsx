@@ -26,6 +26,9 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
   const [port, setPort] = useState<number | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const [editorCtxMenu, setEditorCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const viewRef = useRef<EditorView | null>(null);
   const { settings } = useSettings();
   const fileRef = useRef(file);
   fileRef.current = file;
@@ -83,6 +86,80 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
     };
   }, [file.path]);
 
+  // Close context menus on outside click
+  useEffect(() => {
+    if (!ctxMenu && !editorCtxMenu) return;
+    const close = () => { setCtxMenu(null); setEditorCtxMenu(null); };
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [ctxMenu, editorCtxMenu]);
+
+  const handleEditorFormat = () => {
+    const view = viewRef.current;
+    if (!view) return;
+    const doc = view.state.doc;
+    const text = doc.toString();
+    // Void / self-closing elements that don't need a closing tag.
+    const VOID = new Set(["area","base","br","col","embed","hr","img","input","link","meta","param","source","track","wbr"]);
+    const lines = text.split("\n");
+    let depth = 0;
+    const formatted = lines.map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return "";
+      // Closing tag → outdent first
+      const closeMatch = trimmed.match(/^<\/\s*(\w+)[^>]*>/);
+      if (closeMatch) depth = Math.max(0, depth - 1);
+      // Decrease for closing brackets too (JS/CSS inside <style>/<script>)
+      if (/^[\}\)\]]/.test(trimmed)) depth = Math.max(0, depth - 1);
+      const indented = "  ".repeat(depth) + trimmed;
+      // Count opening tags (not self-closing, not void)
+      const openTags = [...trimmed.matchAll(/<(\w+)(?:\s[^>]*)?>/g)]
+        .filter((m) => !trimmed.includes(`</${m[1]}>`) && !VOID.has(m[1].toLowerCase()));
+      // Count closing tags
+      const closeTags = [...trimmed.matchAll(/<\/\s*\w+[^>]*>/g)];
+      // Count opening brackets
+      const bracketOpens = (trimmed.match(/[\{\(\[]/g) || []).length;
+      const bracketCloses = (trimmed.match(/[\}\)\]]/g) || []).length;
+      depth = Math.max(0, depth + openTags.length - closeTags.length + bracketOpens - bracketCloses);
+      return indented;
+    });
+    view.dispatch({ changes: { from: 0, to: doc.length, insert: formatted.join("\n") } });
+    setEditorCtxMenu(null);
+  };
+
+  const handleEditorCopy = async () => {
+    const view = viewRef.current;
+    if (!view) return;
+    const sel = view.state.selection.main;
+    const text = sel.empty ? view.state.doc.toString() : view.state.sliceDoc(sel.from, sel.to);
+    try { await navigator.clipboard.writeText(text); } catch {}
+    setEditorCtxMenu(null);
+  };
+
+  const handleEditorCut = async () => {
+    const view = viewRef.current;
+    if (!view) return;
+    const sel = view.state.selection.main;
+    if (sel.empty) return;
+    const text = view.state.sliceDoc(sel.from, sel.to);
+    try { await navigator.clipboard.writeText(text); } catch {}
+    view.dispatch({ changes: { from: sel.from, to: sel.to } });
+    setEditorCtxMenu(null);
+  };
+
+  const handleEditorPaste = async () => {
+    const view = viewRef.current;
+    if (!view) return;
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        const sel = view.state.selection.main;
+        view.dispatch({ changes: { from: sel.from, to: sel.to, insert: text } });
+      }
+    } catch {}
+    setEditorCtxMenu(null);
+  };
+
   // Push content to server on edit (debounced) and reload iframe
   useEffect(() => {
     if (!isTauriRuntime()) return;
@@ -113,21 +190,27 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
   }, []);
 
   const editor = (
-    <CodeMirror
-      value={file.content}
-      onChange={setContent}
-      theme={isDark ? "dark" : "light"}
-      extensions={extensions}
-      basicSetup={{
-        lineNumbers: true,
-        foldGutter: true,
-        highlightActiveLine: true,
-        bracketMatching: true,
-        closeBrackets: true,
-        autocompletion: true,
-      }}
-      style={{ height: "100%", ...editorStyle }}
-    />
+    <div
+      style={{ height: "100%" }}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setEditorCtxMenu({ x: e.clientX, y: e.clientY }); }}
+    >
+      <CodeMirror
+        value={file.content}
+        onChange={setContent}
+        theme={isDark ? "dark" : "light"}
+        extensions={extensions}
+        basicSetup={{
+          lineNumbers: true,
+          foldGutter: true,
+          highlightActiveLine: true,
+          bracketMatching: true,
+          closeBrackets: true,
+          autocompletion: true,
+        }}
+        style={{ height: "100%", ...editorStyle }}
+        onCreateEditor={(view) => { viewRef.current = view; }}
+      />
+    </div>
   );
 
   const previewSrc = port
@@ -157,8 +240,12 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
   );
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="toolbar">
+    <div
+      className="html-preview-wrapper"
+      onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY }); }}
+    >
+      {/* Floating toolbar at bottom — frosted glass pill */}
+      <div className="pdf-toolbar">
         <button onClick={() => setMode("split")} disabled={mode === "split"}>
           {t("html.split")}
         </button>
@@ -168,7 +255,7 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
         <button onClick={() => setMode("preview")} disabled={mode === "preview"}>
           {t("html.preview")}
         </button>
-        <span className="divider" />
+        <span className="pdf-toolbar-divider" />
         <button
           onClick={() => setIframeKey((k) => k + 1)}
           disabled={port === null}
@@ -176,12 +263,14 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
         >
           {t("html.reload")}
         </button>
-        <div className="spacer" />
         {port !== null && (
-          <span className="file-info">127.0.0.1:{port}</span>
+          <>
+            <span className="pdf-toolbar-divider" />
+            <span className="pdf-toolbar-page">127.0.0.1:{port}</span>
+          </>
         )}
       </div>
-      <div className="flex-1 min-h-0">
+      <div className="html-preview-content">
         {mode === "split" && (
           <PanelGroup direction="horizontal" autoSaveId="html-split">
             <Panel defaultSize={50} minSize={20}>
@@ -196,6 +285,34 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
         {mode === "editor" && editor}
         {mode === "preview" && previewPane}
       </div>
+
+      {ctxMenu && (
+        <div
+          className="context-menu"
+          style={{ left: ctxMenu.x, top: ctxMenu.y, position: "fixed", zIndex: 200 }}
+          onMouseLeave={() => setCtxMenu(null)}
+        >
+          <button className="context-menu-item" onClick={() => { navigator.clipboard.writeText(file.content).catch(() => {}); setCtxMenu(null); }}>
+            {t("html.copySource")}
+          </button>
+          <button className="context-menu-item" onClick={() => { setIframeKey((k) => k + 1); setCtxMenu(null); }}>
+            {t("html.reload")}
+          </button>
+        </div>
+      )}
+      {editorCtxMenu && (
+        <div
+          className="context-menu"
+          style={{ left: editorCtxMenu.x, top: editorCtxMenu.y, position: "fixed", zIndex: 200 }}
+          onMouseLeave={() => setEditorCtxMenu(null)}
+        >
+          <button className="context-menu-item" onClick={handleEditorFormat}>{t("code.format")}</button>
+          <div className="context-menu-divider" />
+          <button className="context-menu-item" onClick={handleEditorCopy}>{t("code.copy")}</button>
+          <button className="context-menu-item" onClick={handleEditorCut}>{t("code.cut")}</button>
+          <button className="context-menu-item" onClick={handleEditorPaste}>{t("code.paste")}</button>
+        </div>
+      )}
     </div>
   );
 }

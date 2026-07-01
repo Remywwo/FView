@@ -7,11 +7,12 @@ import { useSettings } from "@/hooks/useSettings";
 import { ChatPanel } from "./ui/ChatPanel";
 import { useAIProvider } from "./hooks/useAIProvider";
 
-/** Module-level signal — PdfPreview calls this to open the panel with a question. */
-let panelTrigger: ((q: string, autoSend?: boolean) => void) | null = null;
+/** Module-level signal. Validates config before opening. Returns false if blocked. */
+let panelTrigger: ((q: string, autoSend?: boolean) => boolean) | null = null;
 
-export function triggerAIPanel(question: string, autoSend = false) {
-  panelTrigger?.(question, autoSend);
+export function triggerAIPanel(question: string, autoSend = false): boolean {
+  if (!panelTrigger) return false;
+  return panelTrigger(question, autoSend);
 }
 
 /**
@@ -39,21 +40,26 @@ function AIPanelSlot({ ctx }: { ctx: ExtensionContext }) {
   const isSupported = useCallback(() => {
     const f = host.file.get();
     if (!f) return true; // No file open — allow general chat.
-    return f.kind === "markdown" || f.kind === "pdf";
+    return f.kind === "markdown" || f.kind === "pdf" || f.kind === "docx";
   }, [host]);
 
-  const openPanel = useCallback(() => {
+  const openPanel = useCallback((q?: string, autoSend?: boolean) => {
     if (!isSupported()) {
       host.notify(host.i18n.t("ai.unsupportedType"), "warn");
-      return;
+      return false;
     }
     if (settings.aiProvider === "none" || !settings.aiApiKey) {
       host.notify(host.i18n.t("ai.noApiKey"), "warn");
-      return;
+      return false;
+    }
+    if (q) {
+      setInitialQuestion(q);
+      if (autoSend) pendingInputRef.current = q;
     }
     setOpen(true);
     setFocusKey((k) => k + 1);
     requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+    return true;
   }, [settings, isSupported, host]);
 
   const toggle = useCallback(() => {
@@ -61,13 +67,21 @@ function AIPanelSlot({ ctx }: { ctx: ExtensionContext }) {
     openPanel();
   }, [open, openPanel, close]);
 
-  // Track file changes — close panel when switching to unsupported types.
+  // Track file changes — clear chat context on every switch, close panel
+  // only when moving to an unsupported type.
   useEffect(() => {
+    let lastPath = host.file.get()?.path ?? "";
     const check = () => {
       const f = host.file.get();
-      if (!f) { setClearKey((k) => k + 1); return; }
-      if (f.kind !== "markdown" && f.kind !== "pdf") {
-        if (open) close();
+      const currentPath = f?.path ?? "";
+      if (currentPath !== lastPath) {
+        lastPath = currentPath;
+        setClearKey((k) => k + 1);
+        pendingInputRef.current = null;
+        setInitialQuestion(null);
+        if (!f || (f.kind !== "markdown" && f.kind !== "pdf" && f.kind !== "docx")) {
+          if (open) close();
+        }
       }
     };
     const unsub = host.file.subscribe(check);
@@ -75,23 +89,26 @@ function AIPanelSlot({ ctx }: { ctx: ExtensionContext }) {
   }, [host, open, close]);
 
   // Module-level trigger so external code can open the panel with a question.
+  // Validates AI config — returns false if the panel couldn't be opened.
   useEffect(() => {
     panelTrigger = (q: string, autoSend = false) => {
-      if (autoSend) {
-        setInitialQuestion(q);
-      } else {
-        // Just open panel and let the input be focused — no auto-send.
-        // The question will be set via a separate mechanism.
-        setInitialQuestion(null);
-        // Store the pending input separately for ChatPanel to pick up.
-        pendingInputRef.current = q;
+      if (!isSupported()) {
+        host.notify(host.i18n.t("ai.unsupportedType"), "warn");
+        return false;
       }
+      if (settings.aiProvider === "none" || !settings.aiApiKey) {
+        host.notify(host.i18n.t("ai.noApiKey"), "warn");
+        return false;
+      }
+      setInitialQuestion(autoSend ? q : null);
+      pendingInputRef.current = autoSend ? q : (autoSend ? null : q);
       setOpen(true);
       setFocusKey((k) => k + 1);
       requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+      return true;
     };
     return () => { panelTrigger = null; };
-  }, []);
+  }, [isSupported, settings.aiProvider, settings.aiApiKey, host]);
 
   // Shortcut: toggle AI panel
   useRegisterCommand({
@@ -140,9 +157,9 @@ function AIPanelSlot({ ctx }: { ctx: ExtensionContext }) {
           style={{
             position: "fixed",
             bottom: "var(--ai-panel-bottom, 12px)",
-            left: "50%",
+            left: "calc(var(--sidebar-width, 290px) + (100vw - var(--sidebar-width, 290px)) / 2)",
             width: 560,
-            maxWidth: "calc(100vw - 48px)",
+            maxWidth: "calc(100vw - var(--sidebar-width, 290px) - 48px)",
             zIndex: open ? 50 : -1,
             background: "var(--md-bg)",
             borderRadius: 12,
@@ -169,7 +186,7 @@ const manifest: ExtensionManifest = {
   activate(ctx) {
     const cleanupToolbar = ctx.host.registry.registerToolbar({
       id: "ai.toggle-chat",
-      slot: "toolbar-end",
+      slot: "sidebar-bottom",
       order: 5,
       render: () => <AIPanelSlot ctx={ctx} />,
     });

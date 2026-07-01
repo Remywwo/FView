@@ -10,16 +10,16 @@ import { useRegisterCommand } from "@/hooks/useCommands";
 import { MarkdownEditor } from "./editor/MarkdownEditor";
 import { SearchBar } from "./editor/SearchBar";
 import { useSearch } from "./editor/useSearch";
-import { WysiwygToc } from "@/components/WysiwygToc";
 import { applyGithubTheme } from "./themes/loadTheme";
 
 interface Props {
   file: LoadedFile;
   setContent: (s: string) => void;
   onSelectionChange?: (text: string) => void;
+  onTocContainerReady?: (el: HTMLDivElement | null) => void;
 }
 
-export function MarkdownPreview({ file, setContent }: Props) {
+export function MarkdownPreview({ file, setContent, onTocContainerReady }: Props) {
   const { settings } = useSettings();
   const { lang } = useI18n();
   const { isDark } = useTheme();
@@ -34,8 +34,9 @@ export function MarkdownPreview({ file, setContent }: Props) {
   const onEditorReady = useCallback(() => setEditorReady((n) => n + 1), []);
   const setEditorContainerRef = useCallback((el: HTMLDivElement | null) => {
     containerRef.current = el;
-    setTocContainer((current) => (current === el ? current : el));
-  }, []);
+    setTocContainer(el);
+    onTocContainerReady?.(el);
+  }, [onTocContainerReady]);
 
   // Cmd+F → toggle search bar
   const toggleSearch = useCallback(() => search.toggle(), [search]);
@@ -121,7 +122,6 @@ export function MarkdownPreview({ file, setContent }: Props) {
           editorRef={editorRef}
           onEditorReady={onEditorReady}
         />
-        <WysiwygToc container={tocContainer} />
       </div>
 
       {/* AI context menu */}

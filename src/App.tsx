@@ -13,15 +13,17 @@ import { createHostAPI, type ConcreteHostAPI } from "@/plugins/host";
 import { PluginProvider } from "@/hooks/usePlugin";
 import { DropZone } from "@/components/DropZone";
 import { MarkdownPreview } from "@/components/MarkdownPreview";
+import { DocumentSwitcher } from "@/components/DocumentSwitcher";
+import { Sidebar } from "@/components/Sidebar";
 import { CodePreview } from "@/components/CodePreview";
 import { HtmlPreview } from "@/components/HtmlPreview";
 import { PdfPreview } from "@/components/PdfPreview";
+import type { PdfOutlineNode } from "@/components/PdfOutlineDrawer";
 import { DocxPreview } from "@/components/DocxPreview";
 import { ImagePreview } from "@/components/ImagePreview";
 import { TextPreview } from "@/components/TextPreview";
 import { SettingsModal } from "@/components/SettingsModal";
 import { HelpModal } from "@/components/HelpModal";
-import { FolderTree } from "@/components/FolderTree";
 import { Slot } from "@/components/Slot";
 import { ToastHost } from "@/components/ToastHost";
 import { builtInExtensions } from "@/plugins/extensions";
@@ -44,8 +46,12 @@ export default function App() {
   const { isDark } = theme;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [openMenuOpen, setOpenMenuOpen] = useState(false);
-  const openMenuRef = useRef<HTMLDivElement>(null);
+  // Container element for the markdown editor — passed to the sidebar so
+  // the outline tab can scan headings inside it.
+  const [tocContainer, setTocContainer] = useState<HTMLDivElement | null>(null);
+  // PDF outline data — forwarded to the sidebar's Outline tab.
+  const [pdfOutline, setPdfOutline] = useState<PdfOutlineNode[] | null>(null);
+  const pdfJumpRef = useRef<((page: number) => void) | null>(null);
 
   // Toolbar / menu actions are wired through the centralized command
   // system so that plugins can intercept or extend them later.
@@ -55,11 +61,22 @@ export default function App() {
   const cmdClose = useCommand("file.close");
   const cmdOpenFolder = useCommand("folder.openFolder");
 
+  // The DocumentSwitcher prompts to save before navigating away when the
+  // buffer is dirty. Execute the save command directly so we can await it
+  // and surface failures, and treat synchronous plugins as auto-success.
+  const switcherSave = useCallback(async (): Promise<boolean> => {
+    try {
+      const result = commandCtx.execute("file.save");
+      if (result instanceof Promise) {
+        await result;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }, [commandCtx]);
+
   // ── Plugin HostAPI ────────────────────────────────────────────────
-  // Construct a stable host object that plugins can consume. The host
-  // captures the latest loader/folder/theme/i18n/settings via refs so
-  // its identity never changes — plugins re-render only when they
-  // explicitly subscribe to a slice.
   const loaderRef = useRef(loader);
   loaderRef.current = loader;
   const folderRef = useRef(folder);
@@ -115,7 +132,6 @@ export default function App() {
         await loadFromPath(path);
       }
     } catch {
-      // stat failed — unknown type. Use readDir as definitive directory test.
       try {
         await readDir(path);
         await folder.setFolderPath(path);
@@ -126,13 +142,7 @@ export default function App() {
   }, [folder, loadFromPath]);
 
   // ── Recents ─────────────────────────────────────────────────────
-  // Auto-record every successful open. The path-change effect fires on
-  // any loadFromPath/setFolderPath path (dialog, drop, CLI, recents click,
-  // folder-tree click) so all entry points are covered.
   const recents = useRecents();
-  // Tracks the most recent user-initiated open from a recent-item click.
-  // If a following render shows an error instead of a successful load, the
-  // path is stale and we auto-remove it.
   const attemptedRecentRef = useRef<RecentItem | null>(null);
 
   useEffect(() => {
@@ -180,197 +190,148 @@ export default function App() {
     [loadFromPath, folder],
   );
 
-  // Close open menu on outside click or Esc
-  useEffect(() => {
-    if (!openMenuOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (openMenuRef.current && !openMenuRef.current.contains(e.target as Node)) {
-        setOpenMenuOpen(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [openMenuOpen]);
-
   // Extensions get a stable array reference so PluginProvider doesn't
   // re-activate them on every render.
-  // Emit file changes so plugins (e.g. AI panel) can react.
-  // Must be a useRef to avoid stale closure over host in the effect.
   const currentRef = useRef(current);
   currentRef.current = current;
   useEffect(() => {
     host.file._emit();
   }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Native menu events ──────────────────────────────────────────
+  useEffect(() => {
+    const unlisteners: Array<() => void> = [];
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        unlisteners.push(await listen("menu-file-open", () => cmdOpen()));
+        unlisteners.push(await listen("menu-file-open-folder", () => cmdOpenFolder()));
+        unlisteners.push(await listen("menu-file-save", () => cmdSave()));
+        unlisteners.push(await listen("menu-file-save-as", () => cmdSaveAs()));
+        unlisteners.push(await listen("menu-file-close", () => cmdClose()));
+      } catch { /* not a Tauri runtime */ }
+    })();
+    return () => { unlisteners.forEach((fn) => fn()); };
+  }, [cmdOpen, cmdOpenFolder, cmdSave, cmdSaveAs, cmdClose]);
+
   const extensions = useMemo(() => builtInExtensions, []);
 
   return (
     <PluginProvider host={host} extensions={extensions}>
-      <div className="flex flex-col h-full">
-        <div className="toolbar app-toolbar" data-tauri-drag-region style={isMacPlatform() ? { paddingLeft: 85 } : undefined}>
-        <div className="open-menu" ref={openMenuRef}>
-          <button
-            onClick={() => setOpenMenuOpen((v) => !v)}
-            aria-haspopup="menu"
-            aria-expanded={openMenuOpen}
-            title={t("app.openFile") + " / " + t("app.openFolder")}
-          >
-            {t("app.open")}
-          </button>
-          {openMenuOpen && (
-            <div className="dropdown-menu" role="menu">
-              <button
-                className="dropdown-item"
-                role="menuitem"
-                onClick={() => { setOpenMenuOpen(false); cmdOpen(); }}
-              >
-                <svg className="dropdown-item-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-                <span className="dropdown-item-label">{t("app.openFile")}</span>
-                <span className="dropdown-item-shortcut" aria-hidden="true">
-                  <svg className="shortcut-key" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
-                  </svg>
-                  <span className="shortcut-letter">O</span>
-                </span>
-              </button>
-              <button
-                className="dropdown-item"
-                role="menuitem"
-                onClick={() => { setOpenMenuOpen(false); cmdOpenFolder(); }}
-              >
-                <svg className="dropdown-item-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                </svg>
-                <span className="dropdown-item-label">{t("app.openFolder")}</span>
-                <span className="dropdown-item-shortcut" aria-hidden="true">
-                  <svg className="shortcut-key shortcut-key-shift" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 4L4 12h6v8h4v-8h6z" />
-                  </svg>
-                  <svg className="shortcut-key" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
-                  </svg>
-                  <span className="shortcut-letter">O</span>
-                </span>
-              </button>
-            </div>
-          )}
-        </div>
-        <button onClick={cmdSave} disabled={!current?.isEditable || !current?.dirty} title={`${t("app.save")} (⌘S)`}>{t("app.save")}</button>
-        <button onClick={cmdSaveAs} disabled={!current?.isEditable} title={`${t("app.saveAs")} (⇧⌘S)`}>{t("app.saveAs")}</button>
-          <button onClick={cmdClose} disabled={!current} title={`${t("app.close")} (⌘W)`}>{t("app.close")}</button>
-        <div style={{ flex: 1, textAlign: "right" }}>
-        {current && <span className="file-info">{current.path || current.name}</span>}
-        {current?.dirty && <span className="dirty-dot" title="Unsaved changes">●</span>}
-                 </div>
-        <button onClick={() => setHelpOpen(true)} title={t("app.help")} className="flex items-center justify-center p-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-        </button>
-        <button onClick={() => setSettingsOpen(true)} title={t("app.settings")} className="flex items-center justify-center p-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </button>
-        {/* Plugin injection point — empty when no plugin contributes. */}
-        <Slot name="toolbar-end" />
-      </div>
+      <div className="app-layout">
+        {/* ── Sidebar ──────────────────────────────────────────────── */}
+        <Sidebar
+          onOpen={cmdOpen}
+          onOpenFolder={cmdOpenFolder}
+          onSave={cmdSave}
+          onSaveAs={cmdSaveAs}
+          onClose={cmdClose}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenHelp={() => setHelpOpen(true)}
+          current={current}
+          folderRoot={folder.root}
+          onSelectFile={loadFromPath}
+          onCloseFolder={() => { folder.close(); cmdClose(); }}
+          onRefreshFolder={folder.refresh}
+          onCreateFile={folder.createFile}
+          onCreateFolder={folder.createFolder}
+          onDeleteItem={(path) => {
+            folder.deleteItem(path);
+            if (current?.path === path) cmdClose();
+          }}
+          onRenameItem={folder.renameItem}
+          folderLoading={folder.loading}
+          folderError={folder.error}
+          tocContainer={tocContainer}
+          tocScrollContainer={tocContainer}
+          pdfOutline={pdfOutline}
+          onPdfJump={(page) => pdfJumpRef.current?.(page)}
+          isMac={isMacPlatform()}
+        />
 
-      <div className="flex-1 min-h-0 flex">
-        {folder.root && (
-          <FolderTree
-            root={folder.root}
-            selectedPath={current?.path ?? null}
-            onSelectFile={loadFromPath}
-            onClose={() => { folder.close(); cmdClose(); }}
-            onRefresh={folder.refresh}
-            onCreateFile={folder.createFile}
-            onCreateFolder={folder.createFolder}
-            onDeleteItem={(path) => {
-              folder.deleteItem(path);
-              if (current?.path === path) cmdClose();
-            }}
-            onRenameItem={folder.renameItem}
-            loading={folder.loading}
-            error={folder.error}
-          />
-        )}
-        <div className="flex-1 min-h-0 relative">
-          {!current && !folder.root && (
-            <EmptyState
-              onOpen={cmdOpen}
-              onOpenFolder={() => cmdOpenFolder()}
-              onHelp={() => setHelpOpen(true)}
-              recents={recents.recents}
-              onOpenRecent={handleOpenRecent}
-              onRemoveRecent={recents.removeRecent}
-              onClearRecents={recents.clearRecents}
-            />
-          )}
-          {!current && folder.root && (
-            <div className="empty-state">
-              <div className="title">{t("app.selectFile")}</div>
-              <div className="hint">{t("app.selectFileHint")}</div>
-            </div>
-          )}
-          {error && !current && (
-            <div className="empty-state">
-              <div className="title" style={{ color: "#ef4444" }}>{t("app.error")}</div>
-              <div className="hint">{error}</div>
-            </div>
-          )}
-          {folder.error && !current && (
-            <div className="empty-state">
-              <div className="title" style={{ color: "#ef4444" }}>{t("app.error")}</div>
-              <div className="hint">{folder.error}</div>
-            </div>
-          )}
+        {/* ── Main pane ────────────────────────────────────────────── */}
+        <div className="main-pane">
+          {/* Toolbar — always visible, document switcher only when a file is open */}
+          <div className="toolbar app-toolbar" data-tauri-drag-region>
+            {current && (
+              <DocumentSwitcher
+                current={current}
+                folderRoot={folder.root}
+                recents={recents.recents}
+                onSelect={loadFromPath}
+                onSave={switcherSave}
+              />
+            )}
+          </div>
 
-          {current && current.kind === "markdown" && (
-            <MarkdownPreview file={current} setContent={setContent} onSelectionChange={(t) => setEditorSelection("markdown", t)} />
-          )}
-          {current && current.kind === "html" && (
-            <HtmlPreview file={current} setContent={setContent} isDark={isDark} />
-          )}
-          {current && (current.kind === "code" || (current.kind === "text" && current.isEditable)) && (
-            <CodePreview file={current} setContent={setContent} isDark={isDark} onSelectionChange={(t) => setEditorSelection("code", t)} />
-          )}
-          {current && current.kind === "text" && !current.isEditable && (
-            <TextPreview file={current} />
-          )}
-          {current && current.kind === "pdf" && (
-            <PdfPreview file={current} />
-          )}
-          {current && current.kind === "docx" && (
-            <DocxPreview file={current} />
-          )}
-          {current && current.kind === "image" && (
-            <ImagePreview file={current} />
-          )}
-          {current && current.kind === "unknown" && (
-            <UnknownState name={current.name} />
-          )}
+          <div className="main-pane-body">
+            {!current && !folder.root && (
+              <EmptyState
+                onOpen={cmdOpen}
+                onOpenFolder={() => cmdOpenFolder()}
+                onHelp={() => setHelpOpen(true)}
+                recents={recents.recents}
+                onOpenRecent={handleOpenRecent}
+                onRemoveRecent={recents.removeRecent}
+                onClearRecents={recents.clearRecents}
+              />
+            )}
+            {!current && folder.root && (
+              <div className="empty-state">
+                <div className="title">{t("app.selectFile")}</div>
+                <div className="hint">{t("app.selectFileHint")}</div>
+              </div>
+            )}
+            {error && !current && (
+              <div className="empty-state">
+                <div className="title" style={{ color: "#ef4444" }}>{t("app.error")}</div>
+                <div className="hint">{error}</div>
+              </div>
+            )}
+            {folder.error && !current && (
+              <div className="empty-state">
+                <div className="title" style={{ color: "#ef4444" }}>{t("app.error")}</div>
+                <div className="hint">{folder.error}</div>
+              </div>
+            )}
 
-          <DropZone onDropPath={handleDropPath} />
+            {current && current.kind === "markdown" && (
+              <MarkdownPreview
+                file={current}
+                setContent={setContent}
+                onSelectionChange={(t) => setEditorSelection("markdown", t)}
+                onTocContainerReady={setTocContainer}
+              />
+            )}
+            {current && current.kind === "html" && (
+              <HtmlPreview file={current} setContent={setContent} isDark={isDark} />
+            )}
+            {current && (current.kind === "code" || (current.kind === "text" && current.isEditable)) && (
+              <CodePreview file={current} setContent={setContent} isDark={isDark} onSelectionChange={(t) => setEditorSelection("code", t)} />
+            )}
+            {current && current.kind === "text" && !current.isEditable && (
+              <TextPreview file={current} />
+            )}
+            {current && current.kind === "pdf" && (
+              <PdfPreview file={current} onOutlineReady={setPdfOutline} jumpRef={pdfJumpRef} />
+            )}
+            {current && current.kind === "docx" && (
+              <DocxPreview file={current} />
+            )}
+            {current && current.kind === "image" && (
+              <ImagePreview file={current} />
+            )}
+            {current && current.kind === "unknown" && (
+              <UnknownState name={current.name} />
+            )}
+
+            <DropZone onDropPath={handleDropPath} />
+          </div>
         </div>
       </div>
 
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
-      </div>
       <ToastHost />
     </PluginProvider>
   );
@@ -444,7 +405,7 @@ function EmptyState({
       <div className="hint" style={{ marginTop: "1.4rem" }}>
         {t("app.emptyHelpHint")} <button onClick={onHelp} className="text-blue-500 hover:underline" style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--md-link)", padding: 0 }}>{t("app.emptyHelpLink")}</button>
       </div>
-      <div className="hint" style={{ marginTop: "2rem", fontSize: "0.8rem", opacity: 0.7 }}>
+      <div className="hint" style={{ fontSize: "0.8rem", opacity: 0.7 }}>
         {t("app.supports")}
       </div>
       {recents.length > 0 && (

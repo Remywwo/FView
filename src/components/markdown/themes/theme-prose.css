@@ -1,25 +1,37 @@
-/* ── Lexical editorial styles ────────────────────────────────────────
+/* ── Lexical / Markdown preview styles — Apple editorial style ──────
  *
  * Architecture
- * ───────────
+ * ────────────
  * .md-prose-root       — outer scroll container (MarkdownEditor.tsx)
  *  └── .lexical-editor — Lexical editable surface and prose wrapper
  *
- * The 33 theme CSS files in public/themes/*.min.css set the GFM
- * element palette. This file owns the layout, sizing, scroll
- * behaviour, surface treatment, and editorial polish.
+ * 33 theme CSS files in public/themes/*.min.css (github.min.css is the
+ * one currently in use) set the GFM element palette via the
+ * `.markdown-body, .md-prose …` selector. This file owns the layout,
+ * sizing, surface treatment, and editorial polish on top of those.
  *
- * CSS variables read by loadTheme.ts:
- *   --md-bg, --md-fg, --md-muted, --md-border,
- *   --md-link, --md-code-bg, --md-blockquote-border, --md-accent
+ * Token contract (read from loadTheme.ts):
+ *   --md-bg            page background
+ *   --md-fg            primary text
+ *   --md-muted         secondary text
+ *   --md-border        hairline separator
+ *   --md-link          link / accent
+ *   --md-code-bg       code surface
+ *   --md-blockquote-border  blockquote side
+ *   --md-accent        emphasis / selection
+ *
+ * New tints, glass surfaces, and shadows are derived inline via
+ * `color-mix(in srgb, var(--…) X%, transparent)` so the palette
+ * interface is never widened.
  */
 
-/* ── Root surface — subtle backdrop behind the prose card ──────────── */
+/* ── Root surface — bordered, rounded panel on the canvas ────────── */
 
 .md-prose-root {
   height: 100%;
   width: 100%;
-  background: var(--md-code-bg);
+  background: var(--md-bg);
+  border-radius: 8px;
   overflow: auto;
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
@@ -31,34 +43,43 @@
   outline: none;
   min-height: 100%;
   caret-color: var(--md-accent);
-  transition: caret-color 0.2s;
+  background: var(--md-bg);
+  transition: caret-color 0.2s ease;
 }
 
 .lexical-editor:focus {
   caret-color: var(--md-accent);
 }
 
+/* Reset the github.min.css `> * + *` zero-margin so our em rhythm wins */
 .lexical-editor > * + * {
   margin-top: 0;
 }
 
-/* ── Prose wrapper — centred card on tinted backdrop ───────────────── */
+/* ── Prose wrapper — fills the panel, rhythm governed by padding ───── */
 
 .md-prose {
   word-break: break-word;
   font-size: 15px;            /* overridden by Settings injection */
   line-height: 1.75;          /* overridden by Settings injection */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "SF Pro", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", system-ui, sans-serif;
   color: var(--md-fg);
   background: var(--md-bg);
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 4rem 4rem 6rem;
+  margin: 0;
+  padding: 4.5rem 4rem 7rem;
   box-sizing: border-box;
   min-height: 100%;
+  letter-spacing: -0.011em;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern", "liga", "calt", "ss01";
 }
 
-/* ── Headings — clear scale contrast ──────────────────────────────── */
+/* ── Headings — modular scale, tight tracking ──────────────────────── */
 
 .md-prose h1,
 .md-prose h2,
@@ -69,112 +90,324 @@
   font-weight: 600;
   line-height: 1.2;
   margin: 0 0 0.5em;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
   scroll-margin-top: 1.5rem;
+  color: var(--md-fg);
 }
 
-/* h1 — major section: bold underline */
+/* h1 — sections announced by scale + tracking alone */
 .md-prose h1 {
   font-size: 2em;
-  margin-top: 2.25em;
-  padding-bottom: 0.35em;
-  border-bottom: 2px solid var(--md-accent);
-  letter-spacing: -0.025em;
+  margin-top: 0;
+  padding-top: 0.85em;
+  padding-bottom: 0.4em;
+  letter-spacing: -0.035em;
+  font-weight: 700;
 }
-.md-prose h1:first-child { margin-top: 0; }
+.md-prose h1:first-child {
+  padding-top: 0;
+}
+.md-prose h1 + *,
+.md-prose h2 + *,
+.md-prose h3 + *,
+.md-prose h4 + *,
+.md-prose h5 + *,
+.md-prose h6 + * {
+  margin-top: 0;
+}
 
-/* h2 — coloured underline */
+/* h2 — soft bottom hairline */
 .md-prose h2 {
   font-size: 1.5em;
-  margin-top: 2em;
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid var(--md-border);
-  letter-spacing: -0.02em;
+  margin-top: 2.2em;
+  padding-bottom: 0.35em;
+  letter-spacing: -0.028em;
+  font-weight: 650;
+  border-bottom: 1px solid color-mix(in srgb, var(--md-border) 80%, transparent);
 }
 
-/* h3 — clean, no underline */
+/* h3 — accent tinted lead line via box-shadow inset */
 .md-prose h3 {
   font-size: 1.25em;
-  margin-top: 1.75em;
-  color: var(--md-accent, inherit);
+  margin-top: 1.85em;
+  letter-spacing: -0.022em;
+  font-weight: 650;
 }
 
-.md-prose h4 { font-size: 1.1em; margin-top: 1.5em; }
-.md-prose h5 { font-size: 1em; margin-top: 1.25em; }
-.md-prose h6 { font-size: 0.92em; margin-top: 1em; color: var(--md-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.md-prose h4 {
+  font-size: 1.1em;
+  margin-top: 1.6em;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+.md-prose h5 {
+  font-size: 1em;
+  margin-top: 1.35em;
+  font-weight: 600;
+}
+.md-prose h6 {
+  font-size: 0.82em;
+  margin-top: 1.15em;
+  color: var(--md-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
 
 /* ── Paragraphs ───────────────────────────────────────────────────── */
 
 .md-prose p {
   margin: 0 0 1.25em;
+  color: var(--md-fg);
 }
-.md-prose p:last-child { margin-bottom: 0; }
+.md-prose p:last-child {
+  margin-bottom: 0;
+}
 
-/* ── Links ────────────────────────────────────────────────────────── */
+/* ── Links — hidden underline, color-only by default ──────────────── */
 
 .md-prose a {
   color: var(--md-link);
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: 0.2em;
-  transition: text-decoration-color 0.15s, color 0.15s;
+  text-decoration: none;
+  background-image: linear-gradient(
+    var(--md-link),
+    var(--md-link)
+  );
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition:
+    background-size 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.15s ease;
+  padding-bottom: 1px;
 }
-.md-prose a:hover {
-  text-decoration-color: var(--md-link);
+.md-prose a:hover,
+.md-prose a:focus-visible {
+  background-size: 100% 1px;
+  color: color-mix(in srgb, var(--md-link) 78%, var(--md-fg));
 }
 
-/* ── Blockquotes — editorial inset ────────────────────────────────── */
+/* ── Blockquotes — tinted inset with glow side rail ──────────────── */
 
 .md-prose blockquote {
-  margin: 1.5em 0;
-  padding: 1em 1.25em;
-  color: var(--md-muted);
-  background: var(--md-code-bg);
-  border-left: 4px solid var(--md-accent);
-  border-radius: 0 6px 6px 0;
+  position: relative;
+  margin: 1.75em 0;
+  padding: 1em 1.4em;
+  color: color-mix(in srgb, var(--md-fg) 88%, var(--md-muted));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--md-accent) 6%, var(--md-bg)) 0%,
+    color-mix(in srgb, var(--md-accent) 2%, var(--md-code-bg)) 100%
+  );
+  border-left: 3px solid var(--md-accent);
+  border-radius: 0 14px 14px 0;
 }
-.md-prose blockquote > :first-child { margin-top: 0; }
-.md-prose blockquote > :last-child { margin-bottom: 0; }
-.md-prose blockquote p { margin: 0.5em 0; font-style: italic; }
+.md-prose blockquote::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: 1em;
+  bottom: 1em;
+  width: 3px;
+  background: linear-gradient(
+    to bottom,
+    var(--md-accent),
+    color-mix(in srgb, var(--md-accent) 60%, transparent)
+  );
+  border-radius: 3px;
+}
+.md-prose blockquote > :first-child {
+  margin-top: 0;
+}
+.md-prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+.md-prose blockquote p {
+  margin: 0.55em 0;
+  font-style: italic;
+}
 
-/* ── Lists — matched spacing ──────────────────────────────────────── */
+/* ── Lists ────────────────────────────────────────────────────────── */
 
 .md-prose ul,
 .md-prose ol {
-  padding-left: 1.75em;
-  margin: 1em 0;
+  padding-left: 1.5em;
+  margin: 1.1em 0;
 }
-.md-prose ul { list-style: disc; }
-.md-prose ol { list-style: decimal; }
-.md-prose ul ul { list-style: circle; }
-.md-prose ol ol { list-style: lower-alpha; }
-.md-prose li + li { margin-top: 0.35em; }
-.md-prose li > p { margin: 0; }
+.md-prose ul {
+  list-style: disc;
+}
+.md-prose ol {
+  list-style: decimal;
+}
+.md-prose ul ul {
+  list-style: circle;
+}
+.md-prose ol ol {
+  list-style: lower-alpha;
+}
+.md-prose li {
+  padding-left: 0.25em;
+}
+.md-prose li + li {
+  margin-top: 0.4em;
+}
+.md-prose li::marker {
+  color: color-mix(in srgb, var(--md-accent) 70%, var(--md-muted));
+  font-variant-numeric: tabular-nums;
+}
+.md-prose li > p {
+  margin: 0;
+}
+.md-prose li > ul,
+.md-prose li > ol {
+  margin: 0.4em 0 0.2em;
+}
 
-/* ── GFM Tables ────────────────────────────────────────────────────── */
+/* ── GFM Tables — softened chrome, sticky header ─────────────────── */
 
-.md-prose table {
-  border-collapse: collapse;
-  margin: 1.5em 0;
+.md-prose .md-table-wrap {
+  margin: 1.6em 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--md-code-bg) 60%, var(--md-bg));
+  padding: 1px;
+}
+
+.md-prose .md-table {
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
-  overflow: auto;
-  font-size: 0.95em;
+  font-size: 0.94em;
+  border-radius: 13px;
+  overflow: hidden;
+  background: var(--md-bg);
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-fg) 5%, transparent),
+    0 6px 22px color-mix(in srgb, var(--md-fg) 10%, transparent);
 }
-.md-prose table th,
-.md-prose table td {
-  border: 1px solid var(--md-border);
-  padding: 0.55em 0.9em;
-  text-align: left;
-}
-.md-prose table th {
-  font-weight: 600;
-  background: var(--md-code-bg);
-}
-.md-prose table tr:nth-child(2n) td {
-  background-color: var(--md-code-bg);
+.dark .md-prose .md-table {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.45),
+    0 8px 28px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Task lists — custom checkbox ─────────────────────────────────── */
+.md-prose .md-table-cell,
+.md-prose .md-table-cell-header {
+  border: none;
+  border-right: 1px solid color-mix(in srgb, var(--md-border) 65%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--md-border) 65%, transparent);
+  padding: 0.6em 1em;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+/* Body cell — stays on the page surface */
+.md-prose .md-table-cell {
+  background: var(--md-bg);
+}
+
+/* Header cell — distinctly darker tint, bold body weight, tighter padding */
+.md-prose .md-table-cell-header {
+  background: color-mix(in srgb, var(--md-code-bg) 65%, var(--md-bg));
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  color: var(--md-fg);
+  font-feature-settings: "tnum" 1;
+}
+
+/* Header cells that live in body rows (column headers) revert to body look */
+.md-prose .md-table-row:not(:first-child) .md-table-cell-header {
+  background: var(--md-bg);
+  font-weight: inherit;
+  letter-spacing: inherit;
+  color: var(--md-fg);
+}
+
+/* Alternating zebra — accent tint at low intensity, body cells only */
+.md-prose .md-table-row:not(:first-child):nth-child(2n + 1) .md-table-cell {
+  background: color-mix(in srgb, var(--md-accent) 5%, var(--md-bg));
+}
+
+.md-prose .md-table-row:last-child .md-table-cell,
+.md-prose .md-table-row:last-child .md-table-cell-header {
+  border-bottom: none;
+}
+
+.md-prose .md-table-cell:last-child,
+.md-prose .md-table-cell-header:last-child {
+  border-right: none;
+}
+
+/* ── Table action toolbar — frosted glass ─────────────────────────── */
+
+.table-action-toolbar {
+  position: fixed;
+  z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
+  padding: 0.28rem;
+  background: color-mix(in srgb, var(--md-bg) 82%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  backdrop-filter: saturate(180%) blur(22px);
+  color: var(--md-fg);
+  border: 1px solid color-mix(in srgb, var(--md-border) 70%, transparent);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-fg) 6%, transparent),
+    0 10px 28px color-mix(in srgb, #000 22%, transparent);
+}
+
+.table-action-toolbar.above {
+  transform: translate(-100%, -100%);
+}
+
+.table-action-toolbar.below {
+  transform: translateX(-100%);
+}
+
+.dark .table-action-toolbar {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 14px 34px rgba(0, 0, 0, 0.55);
+}
+
+.table-action-toolbar button {
+  border: none;
+  border-radius: 7px;
+  padding: 0.28rem 0.45rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.table-action-toolbar button:hover {
+  background: color-mix(in srgb, var(--md-accent) 10%, transparent);
+}
+.table-action-toolbar button:active {
+  transform: scale(0.96);
+}
+.table-action-toolbar button.danger {
+  color: #dc2626;
+}
+.dark .table-action-toolbar button.danger {
+  color: #f87171;
+}
+
+.table-action-divider {
+  width: 1px;
+  height: 1rem;
+  background: color-mix(in srgb, var(--md-border) 70%, transparent);
+  margin: 0 0.15rem;
+}
+
+/* ── Task lists — refined checkbox ────────────────────────────────── */
 
 .md-prose ul[data-type="taskList"] {
   list-style: none;
@@ -183,69 +416,110 @@
 .md-prose ul[data-type="taskList"] li {
   display: flex;
   align-items: flex-start;
-  gap: 0.5em;
-  padding: 0.15em 0;
+  gap: 0.55em;
+  padding: 0.2em 0;
 }
 .md-prose ul[data-type="taskList"] li > label {
   flex-shrink: 0;
-  margin-top: 0.15em;
+  margin-top: 0.18em;
   user-select: none;
 }
 .md-prose ul[data-type="taskList"] input[type="checkbox"] {
   appearance: none;
-  width: 1.1em;
-  height: 1.1em;
-  border: 1.5px solid var(--md-muted);
-  border-radius: 3px;
+  -webkit-appearance: none;
+  width: 1.15em;
+  height: 1.15em;
+  border: 1.5px solid color-mix(in srgb, var(--md-muted) 90%, transparent);
+  border-radius: 5px;
   cursor: pointer;
   background: transparent;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
   display: grid;
   place-content: center;
+}
+.md-prose ul[data-type="taskList"] input[type="checkbox"]:hover {
+  border-color: color-mix(in srgb, var(--md-accent) 75%, var(--md-muted));
 }
 .md-prose ul[data-type="taskList"] input[type="checkbox"]:checked {
   background: var(--md-accent);
   border-color: var(--md-accent);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--md-accent) 50%, transparent);
 }
 .md-prose ul[data-type="taskList"] input[type="checkbox"]:checked::after {
   content: "";
-  width: 0.5em;
-  height: 0.3em;
+  width: 0.55em;
+  height: 0.32em;
   border: 2px solid var(--md-bg);
   border-top: none;
   border-right: none;
-  transform: rotate(-45deg) translate(1px, -1px);
+  transform: rotate(-45deg) translate(0, -1px);
 }
 .md-prose ul[data-type="taskList"] li[data-checked="true"] > div {
   color: var(--md-muted);
   text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: color-mix(in srgb, var(--md-muted) 80%, transparent);
 }
 
-/* ── Inline code ──────────────────────────────────────────────────── */
+/* ── Inline code ─────────────────────────────────────────────────── */
 
-.md-prose code {
-  background: var(--md-code-bg);
-  padding: 0.15em 0.4em;
-  border-radius: 4px;
-  font-family: "JetBrains Mono", "SF Mono", "Fira Code", "Cascadia Code", Menlo, Consolas, monospace;
+.md-prose code:not(.md-code-block),
+.md-prose .md-text-code {
+  background: color-mix(in srgb, var(--md-code-bg) 80%, transparent);
+  padding: 0.1em 0.38em;
+  border-radius: 6px;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code",
+    "Cascadia Code", Menlo, Consolas, monospace;
   font-size: 0.88em;
-  border: 1px solid var(--md-border);
+  border: 1px solid color-mix(in srgb, var(--md-border) 60%, transparent);
   tab-size: 2;
+  letter-spacing: 0;
 }
 
-/* ── Code blocks — macOS-style header ─────────────────────────────── */
+/* ── Code blocks — macOS panel feel ─────────────────────────────── */
 
 .md-prose pre {
-  background: var(--md-code-bg);
-  border: 1px solid var(--md-border);
-  border-radius: 10px;
+  background: color-mix(in srgb, var(--md-code-bg) 96%, var(--md-bg));
+  border: 1px solid color-mix(in srgb, var(--md-border) 75%, transparent);
+  border-radius: 14px;
   padding: 0;
-  margin: 1.5em 0;
+  margin: 1.7em 0;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-fg) 5%, transparent),
+    0 6px 22px color-mix(in srgb, var(--md-fg) 8%, transparent);
+}
+.md-prose .md-code-block {
+  display: block;
+  white-space: pre;
+  background: color-mix(in srgb, var(--md-code-bg) 96%, var(--md-bg));
+  border: 1px solid color-mix(in srgb, var(--md-border) 75%, transparent);
+  border-radius: 14px;
+  padding: 1.25em 1.3em;
+  margin: 1.7em 0;
+  overflow: auto;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code",
+    "Cascadia Code", Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  line-height: 1.55;
+  tab-size: 2;
+  letter-spacing: 0;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-fg) 5%, transparent),
+    0 6px 22px color-mix(in srgb, var(--md-fg) 8%, transparent);
+}
+.dark .md-prose .md-code-block {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 6px 22px rgba(0, 0, 0, 0.4);
 }
 .dark .md-prose pre {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 6px 22px rgba(0, 0, 0, 0.4);
 }
 .md-prose pre code {
   display: block;
@@ -271,17 +545,17 @@
   right: 0;
   display: flex;
   align-items: center;
-  height: 2.2em;
+  height: 2.1em;
   padding: 0 1.2em 0 3.2em;  /* room for traffic-light dots */
-  font-size: 0.68em;
-  font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  font-size: 0.7em;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
   font-weight: 500;
   color: var(--md-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  background: var(--md-bg);
-  border-bottom: 1px solid var(--md-border);
-  border-radius: 10px 10px 0 0;
+  letter-spacing: 0.08em;
+  background: color-mix(in srgb, var(--md-bg) 90%, var(--md-code-bg));
+  border-bottom: 1px solid color-mix(in srgb, var(--md-border) 70%, transparent);
+  border-radius: 13px 13px 0 0;
 }
 
 /* macOS traffic-light dots in code-block header (non-interactive) */
@@ -295,11 +569,11 @@
   border-radius: 50%;
   background: #ff5f57;
   box-shadow:
-    1.05em 0 0 #febc2e,
-    2.1em 0 0 #28c840;
+    1.1em 0 0 #febc2e,
+    2.2em 0 0 #28c840;
 }
 
-/* ── Horizontal rule — decorative ─────────────────────────────────── */
+/* ── Horizontal rule — decorative pips ─────────────────────────────── */
 
 .md-prose hr {
   border: none;
@@ -308,46 +582,58 @@
   text-align: center;
 }
 .md-prose hr::after {
-  content: "·  ·  ·";
+  content: "·   ·   ·";
   display: block;
-  color: var(--md-muted);
-  font-size: 1.2em;
-  letter-spacing: 0.5em;
+  color: color-mix(in srgb, var(--md-muted) 70%, transparent);
+  font-size: 0.95em;
+  letter-spacing: 0.7em;
   line-height: 1;
+  padding-left: 0.7em; /* offset for letter-spacing visual */
 }
 
-/* ── Images — framed ──────────────────────────────────────────────── */
+/* ── Images — soft elevation ──────────────────────────────────────── */
 
 .md-prose img {
   display: block;
   max-width: 100%;
   height: auto;
-  margin: 1.5em auto;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin: 1.7em auto;
+  border-radius: 14px;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-fg) 6%, transparent),
+    0 8px 24px color-mix(in srgb, var(--md-fg) 10%, transparent);
 }
 .dark .md-prose img {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 10px 28px rgba(0, 0, 0, 0.5);
 }
 .md-prose .md-zoomable-img {
   cursor: zoom-in;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .md-prose .md-zoomable-img:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: scale(1.015);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-fg) 8%, transparent),
+    0 14px 32px color-mix(in srgb, var(--md-fg) 14%, transparent);
 }
 
-/* ── Mermaid diagrams — framed container ──────────────────────────── */
+/* ── Mermaid diagrams — same surface as code blocks ───────────────── */
 
 .md-prose .md-mermaid-block {
-  margin: 1.5em 0;
+  margin: 1.7em 0;
   padding: 1.5em;
-  background: var(--md-code-bg);
-  border: 1px solid var(--md-border);
-  border-radius: 10px;
+  background: color-mix(in srgb, var(--md-code-bg) 96%, var(--md-bg));
+  border: 1px solid color-mix(in srgb, var(--md-border) 75%, transparent);
+  border-radius: 14px;
   text-align: center;
   overflow: auto;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-fg) 5%, transparent),
+    0 6px 22px color-mix(in srgb, var(--md-fg) 8%, transparent);
 }
 .md-prose .md-mermaid-block svg {
   max-width: 100%;
@@ -362,13 +648,18 @@
   display: inline-block;
   vertical-align: middle;
   margin: 0 0.1em;
+  padding: 0 0.1em;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--md-code-bg) 60%, transparent);
 }
 .md-prose .md-math-block {
   display: block;
   text-align: center;
-  margin: 1.5em 0;
-  padding: 1em 0;
+  margin: 1.6em 0;
+  padding: 1.1em 0;
   overflow-x: auto;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--md-code-bg) 50%, transparent);
 }
 
 /* ── Mark decoration — bold, italic, strike ───────────────────────── */
@@ -379,19 +670,22 @@
 }
 .md-prose em {
   font-style: italic;
-  color: var(--md-muted);
+  color: color-mix(in srgb, var(--md-fg) 88%, var(--md-muted));
 }
 .md-prose s {
   text-decoration: line-through;
-  opacity: 0.7;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: color-mix(in srgb, var(--md-muted) 70%, transparent);
+  opacity: 0.75;
 }
 
-/* ── Selection (editor) — accent tint ─────────────────────────────── */
+/* ── Selection (editor) — soft accent tint ───────────────────────── */
 
 .lexical-editor ::selection,
 .lexical-editor ::-moz-selection {
-  background: color-mix(in srgb, var(--md-accent) 20%, transparent);
+  background: color-mix(in srgb, var(--md-accent) 22%, transparent);
   color: inherit;
+  border-radius: 3px;
 }
 
 /* ── Focus ring — subtle ──────────────────────────────────────────── */
@@ -400,12 +694,88 @@
   outline: none;
 }
 
+/* ── Slash command menu — frosted popover ─────────────────────────── */
+
+.slash-command-anchor {
+  z-index: 60;
+}
+
+.slash-command-menu {
+  min-width: 240px;
+  max-width: min(340px, calc(100vw - 32px));
+  max-height: 300px;
+  overflow: auto;
+  padding: 0.32rem;
+  background: color-mix(in srgb, var(--md-bg) 84%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(28px);
+  backdrop-filter: saturate(180%) blur(28px);
+  color: var(--md-fg);
+  border: 1px solid color-mix(in srgb, var(--md-border) 70%, transparent);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-fg) 5%, transparent),
+    0 12px 36px color-mix(in srgb, #000 22%, transparent);
+}
+
+.dark .slash-command-menu {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 14px 38px rgba(0, 0, 0, 0.55);
+}
+
+.slash-command-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.18rem;
+  padding: 0.5rem 0.65rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.slash-command-item.active,
+.slash-command-item:hover {
+  background: color-mix(in srgb, var(--md-accent) 12%, transparent);
+}
+
+.slash-command-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+}
+
+.slash-command-description {
+  color: var(--md-muted);
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+
 /* ── Responsive — narrow windows ──────────────────────────────────── */
 
 @media (max-width: 800px) {
+  .md-prose-root {
+    width: 100%;
+    height: 100%;
+  }
   .md-prose {
-    max-width: 100%;
-    padding: 2rem 1.5rem 4rem;
-    border-radius: 0;
+    padding: 2.4rem 1.5rem 4.5rem;
+  }
+  .md-prose h1 {
+    font-size: 1.65em;
+  }
+  .md-prose h2 {
+    font-size: 1.3em;
+  }
+  .table-action-toolbar,
+  .slash-command-menu {
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
   }
 }

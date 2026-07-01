@@ -1,14 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import type { LoadedFile } from "@/hooks/useFileLoader";
 import { useI18n } from "@/hooks/useI18n";
+import { triggerAIPanel } from "@/plugins/extensions/ai-assistant";
 
 type Status = "loading" | "ready" | "error";
 
 export function DocxPreview({ file }: { file: LoadedFile }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState<string | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; text: string } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [ctxMenu]);
 
   useEffect(() => {
     let cancelled = false;
@@ -17,7 +26,6 @@ export function DocxPreview({ file }: { file: LoadedFile }) {
 
     const container = containerRef.current;
     if (!container) return;
-    // Clear stale DOM from a previous docx render before re-rendering.
     container.innerHTML = "";
 
     if (!file.binaryBytes) {
@@ -28,10 +36,7 @@ export function DocxPreview({ file }: { file: LoadedFile }) {
 
     (async () => {
       try {
-        // Dynamic import — Vite splits docx-preview into its own chunk.
         const { renderAsync } = await import("docx-preview");
-        // .slice() so docx-preview's internal typed-array views never mutate
-        // the loader-owned buffer.
         await renderAsync(
           file.binaryBytes!.slice(),
           container,
@@ -64,13 +69,18 @@ export function DocxPreview({ file }: { file: LoadedFile }) {
 
     return () => {
       cancelled = true;
-      // Release the rendered DOM on unmount / file switch.
       if (container) container.innerHTML = "";
     };
   }, [file.path, file.binaryBytes]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className="flex flex-col h-full"
+      onContextMenu={(e) => {
+        const sel = window.getSelection()?.toString().trim();
+        if (sel) { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, text: sel }); }
+      }}
+    >
       <div
         className="flex-1 min-h-0 overflow-auto"
         style={{ background: "var(--md-code-bg)" }}
@@ -93,6 +103,30 @@ export function DocxPreview({ file }: { file: LoadedFile }) {
           className="docx-preview-container"
         />
       </div>
+
+      {ctxMenu && (
+        <div
+          style={{
+            position: "fixed", left: ctxMenu.x, top: ctxMenu.y, zIndex: 200,
+            background: "var(--md-bg)", border: "1px solid var(--md-border)",
+            borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", padding: 4,
+          }}
+          onMouseLeave={() => setCtxMenu(null)}
+        >
+          <button
+            onClick={() => { triggerAIPanel(ctxMenu.text); setCtxMenu(null); }}
+            style={{
+              display: "block", width: "100%", padding: "6px 14px",
+              border: "none", background: "none", color: "var(--md-fg)",
+              fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 4, whiteSpace: "nowrap",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--md-code-bg)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+          >
+            ✨ {lang === "zh" ? "AI 对话" : "Ask AI"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

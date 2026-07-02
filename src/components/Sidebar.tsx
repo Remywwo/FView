@@ -121,8 +121,12 @@ export function Sidebar(props: SidebarProps) {
 
   return (
     <aside className={`sidebar${props.isMac ? " sidebar-mac" : ""}`} style={{ width }}>
-      {/* Titlebar spacer — keep content clear of the toolbar / traffic-light area */}
-      <div className={`sidebar-top-spacer${props.isMac ? " sidebar-mac-spacer" : ""}`} data-tauri-drag-region/>
+      {/* Titlebar spacer — keep content clear of the toolbar / traffic-light area.
+          Only needed on macOS; Windows has no traffic lights and uses the native
+          title bar, so the extra 34 px gap is wasted space. */}
+      {props.isMac ? (
+        <div className="sidebar-top-spacer sidebar-mac-spacer" data-tauri-drag-region />
+      ) : null}
 
       {/* ── Top action toolbar (centred) ──────────────────────────── */}
       <div className="sidebar-toolbar">

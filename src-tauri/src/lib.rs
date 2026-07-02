@@ -257,46 +257,54 @@ pub fn run() {
             stop_html_server,
         ])
         .setup(|app| {
-            use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
             use tauri::{Emitter, WebviewUrl, WebviewWindowBuilder};
 
-            // ── Native menu bar ───────────────────────────────────
-            let file_menu = SubmenuBuilder::new(app, "File")
-                .item(&MenuItemBuilder::with_id("open", "Open File…")
-                    .accelerator("CmdOrCtrl+O")
-                    .build(app)?)
-                .item(&MenuItemBuilder::with_id("open_folder", "Open Folder…")
-                    .accelerator("CmdOrCtrl+Shift+O")
-                    .build(app)?)
-                .separator()
-                .item(&MenuItemBuilder::with_id("save", "Save")
-                    .accelerator("CmdOrCtrl+S")
-                    .build(app)?)
-                .item(&MenuItemBuilder::with_id("save_as", "Save As…")
-                    .accelerator("CmdOrCtrl+Shift+S")
-                    .build(app)?)
-                .separator()
-                .item(&MenuItemBuilder::with_id("close", "Close")
-                    .accelerator("CmdOrCtrl+W")
-                    .build(app)?)
-                .build()?;
+            // ── Native macOS menu bar ─────────────────────────────
+            // macOS exposes a global menu bar at the top of the screen; on
+            // Windows / Linux the app has no equivalent desktop surface, so
+            // building and registering the menu there is pointless and would
+            // leave accelerators with no UI. macOS-only.
+            #[cfg(target_os = "macos")]
+            {
+                use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 
-            let menu = MenuBuilder::new(app)
-                .item(&file_menu)
-                .build()?;
-            app.set_menu(menu)?;
+                let file_menu = SubmenuBuilder::new(app, "File")
+                    .item(&MenuItemBuilder::with_id("open", "Open File…")
+                        .accelerator("CmdOrCtrl+O")
+                        .build(app)?)
+                    .item(&MenuItemBuilder::with_id("open_folder", "Open Folder…")
+                        .accelerator("CmdOrCtrl+Shift+O")
+                        .build(app)?)
+                    .separator()
+                    .item(&MenuItemBuilder::with_id("save", "Save")
+                        .accelerator("CmdOrCtrl+S")
+                        .build(app)?)
+                    .item(&MenuItemBuilder::with_id("save_as", "Save As…")
+                        .accelerator("CmdOrCtrl+Shift+S")
+                        .build(app)?)
+                    .separator()
+                    .item(&MenuItemBuilder::with_id("close", "Close")
+                        .accelerator("CmdOrCtrl+W")
+                        .build(app)?)
+                    .build()?;
 
-            app.on_menu_event(|app_handle, event| {
-                let id: &str = event.id().0.as_ref();
-                match id {
-                    "open" => { let _ = app_handle.emit("menu-file-open", ()); }
-                    "open_folder" => { let _ = app_handle.emit("menu-file-open-folder", ()); }
-                    "save" => { let _ = app_handle.emit("menu-file-save", ()); }
-                    "save_as" => { let _ = app_handle.emit("menu-file-save-as", ()); }
-                    "close" => { let _ = app_handle.emit("menu-file-close", ()); }
-                    _ => {}
-                }
-            });
+                let menu = MenuBuilder::new(app)
+                    .item(&file_menu)
+                    .build()?;
+                app.set_menu(menu)?;
+
+                app.on_menu_event(|app_handle, event| {
+                    let id: &str = event.id().0.as_ref();
+                    match id {
+                        "open" => { let _ = app_handle.emit("menu-file-open", ()); }
+                        "open_folder" => { let _ = app_handle.emit("menu-file-open-folder", ()); }
+                        "save" => { let _ = app_handle.emit("menu-file-save", ()); }
+                        "save_as" => { let _ = app_handle.emit("menu-file-save-as", ()); }
+                        "close" => { let _ = app_handle.emit("menu-file-close", ()); }
+                        _ => {}
+                    }
+                });
+            }
 
             // ── Window ───────────────────────────────────────────
             #[cfg(target_os = "macos")]

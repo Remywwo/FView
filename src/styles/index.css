@@ -11,7 +11,7 @@
   --md-code-bg: #f6f8fa;
   --md-blockquote-border: #d1d5db;
   --md-accent: #4f46e5;
-  --fview-highlight-color: #4f46e5;
+  --fview-highlight-color: #ff9300;
   --fview-user-message-bg: #2563eb;
   --sidebar-width: 290px;
 
@@ -30,7 +30,7 @@
   --md-code-bg: #2a2a2a;
   --md-blockquote-border: #4b5563;
   --md-accent: #818cf8;
-  --fview-highlight-color: #818cf8;
+  --fview-highlight-color: #ff9300;
   --fview-user-message-bg: #2563eb;
 }
 
@@ -172,10 +172,10 @@ html, body {
 }
 .pdf-outline-row.is-active {
   border-left-color: var(--md-accent);
-  background: color-mix(in srgb, var(--md-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--fview-highlight-color) 10%, transparent);
 }
 .pdf-outline-row:not(.is-disabled):hover {
-  background: color-mix(in srgb, var(--md-accent) 6%, transparent);
+  background: color-mix(in srgb, var(--fview-highlight-color) 6%, transparent);
 }
 .pdf-outline-toggle {
   flex: 0 0 auto;
@@ -509,13 +509,13 @@ html, body {
   transition: color 0.1s, background 0.1s, border-color 0.1s;
 }
 .sidebar-outline-item button:hover {
-  color: var(--md-fg);
-  background: color-mix(in srgb, var(--md-accent) 8%, transparent);
+  background: color-mix(in srgb, var(--fview-highlight-color) 10%, transparent);
+  border-radius: 6px;
 }
 .sidebar-outline-item.is-active button {
   color: var(--md-accent);
   border-left-color: var(--md-accent);
-  background: color-mix(in srgb, var(--md-accent) 12%, transparent);
+  background: color-mix(in srgb, var(--fview-highlight-color) 12%, transparent);
 }
 .sidebar-outline-empty {
   padding: 1rem;
@@ -578,7 +578,7 @@ html, body {
   line-height: 1.4;
 }
 .tree-row:hover {
-  background: var(--md-code-bg);
+  background: color-mix(in srgb, var(--fview-highlight-color) 10%, transparent);
   border-radius: 6px;
 }
 .tree-close-btn {
@@ -1049,7 +1049,7 @@ html, body {
 
 .pdf-toolbar {
   position: absolute;
-  bottom: 16px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;

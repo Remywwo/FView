@@ -50,7 +50,7 @@ const DEFAULT_SETTINGS: Settings = {
   fontFamily: "system",
   fontSize: DEFAULT_FONT_SIZE,
   lineHeight: DEFAULT_LINE_HEIGHT,
-  highlightColor: "#4f46e5",
+  highlightColor: "#ff9300",
   userMessageBgColor: "#2563eb",
   aiProvider: "none",
   aiApiKey: "",

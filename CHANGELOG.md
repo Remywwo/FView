@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-07-02
+
+### Added
+- **Version badge** — Help modal title bar shows the current version as a subtle pill label.
+
+### Changed
+- **⌘F now opens Document Switcher** — unified search panel for files and current document content (replaces standalone in-editor search bar).
+- **Close protection** — closing a modified file (`⌘W`) prompts to save, discard, or cancel.
+- **Customizable highlight color** — settings panel lets you configure the accent color and user-message background, applied globally to text selection, search highlights, dirty dot, and UI accents.
+- **Unsaved indicator** improved — now includes a text label ("Unsaved") alongside the dot in the toolbar pill.
+- **Search highlights** use CSS `::highlight()` API in the Lexical editor for rendered-document keyword matching.
+- **Sidebar polish** — folder tree hover rounded corners; TOC items full border-radius; scrollbar hidden in folder sidebar.
+
+### Fixed
+- **Dirty state false positive on file open** — Lexical editor initial population no longer triggers the "Unsaved" indicator. Two root causes fixed: dirty-element listener during editor init, and markdown round-trip normalization differences.
+
+### Removed
+- **Standalone Markdown search bar** (`SearchBar.tsx`, `useSearch.ts`) — replaced by the unified Document Switcher.
+
 ## [0.8.0] - 2026-07-02
 
 ### Added

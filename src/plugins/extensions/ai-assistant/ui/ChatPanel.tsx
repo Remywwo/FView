@@ -155,9 +155,9 @@ export function ChatPanel({ provider, onClose, compact: startCompact, initialQue
         onInput={(e) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 120) + "px"; }}
       />
       {loading ? (
-        <button onClick={cancel} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--md-border)", background: "var(--md-bg)", color: "var(--md-accent)", fontSize: 12, cursor: "pointer" }}>{t("ai.cancel")}</button>
+        <button onClick={cancel} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, border: "1px solid var(--md-border)", background: "var(--md-bg)", color: "var(--fview-highlight-color)", fontSize: 12, cursor: "pointer" }}>{t("ai.cancel")}</button>
       ) : (
-        <button onClick={doSend} disabled={!input.trim() || !p} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, border: "none", background: input.trim() && p ? "var(--md-link)" : "var(--md-border)", color: input.trim() && p ? "#fff" : "var(--md-muted)", fontSize: 12, cursor: input.trim() && p ? "pointer" : "default" }}>{t("ai.send")}</button>
+        <button onClick={doSend} disabled={!input.trim() || !p} style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, border: "none", background: input.trim() && p ? "var(--fview-highlight-color)" : "var(--md-border)", color: input.trim() && p ? "#fff" : "var(--md-muted)", fontSize: 12, cursor: input.trim() && p ? "pointer" : "default" }}>{t("ai.send")}</button>
       )}
     </div>
   );
@@ -208,7 +208,7 @@ export function ChatPanel({ provider, onClose, compact: startCompact, initialQue
       {hasMessages && (
         <div ref={listRef} style={{ flex: 1, overflow: "auto", padding: "12px 14px", minHeight: 0, background: "var(--md-bg)", borderRadius: "12px 12px 0 0" }}>
           {messages.map((msg) => <ChatBubble key={msg.id} message={msg} />)}
-          {loading && <span style={{ display: "inline-block", width: 6, height: 14, background: "var(--md-link)", animation: "blink 1s step-end infinite", marginLeft: 4 }} />}
+          {loading && <span style={{ display: "inline-block", width: 6, height: 14, background: "var(--fview-highlight-color)", animation: "blink 1s step-end infinite", marginLeft: 4 }} />}
         </div>
       )}
 
@@ -227,9 +227,9 @@ export function ChatPanel({ provider, onClose, compact: startCompact, initialQue
             onInput={(e) => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 120) + "px"; }}
           />
           {loading ? (
-            <button onClick={cancel} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 8, border: "1px solid var(--md-border)", background: "var(--md-bg)", color: "var(--md-accent)", fontSize: 13, cursor: "pointer" }}>{t("ai.cancel")}</button>
+            <button onClick={cancel} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 8, border: "1px solid var(--md-border)", background: "var(--md-bg)", color: "var(--fview-highlight-color)", fontSize: 13, cursor: "pointer" }}>{t("ai.cancel")}</button>
           ) : (
-            <button onClick={doSend} disabled={!input.trim() || !p} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 8, border: "none", background: input.trim() && p ? "var(--md-link)" : "var(--md-border)", color: input.trim() && p ? "#fff" : "var(--md-muted)", fontSize: 13, cursor: input.trim() && p ? "pointer" : "default" }}>{t("ai.send")}</button>
+            <button onClick={doSend} disabled={!input.trim() || !p} style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 8, border: "none", background: input.trim() && p ? "var(--fview-highlight-color)" : "var(--md-border)", color: input.trim() && p ? "#fff" : "var(--md-muted)", fontSize: 13, cursor: input.trim() && p ? "pointer" : "default" }}>{t("ai.send")}</button>
           )}
         </div>
       </div>

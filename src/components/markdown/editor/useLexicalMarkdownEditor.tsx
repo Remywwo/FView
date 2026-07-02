@@ -19,12 +19,14 @@ import type { LexicalEditor } from "lexical";
 import { $getRoot } from "lexical";
 import { SlashCommandPlugin } from "./SlashCommandPlugin";
 import { TableActionPlugin } from "./TableActionPlugin";
+import { SearchHighlightPlugin } from "./SearchHighlightPlugin";
 
 export type MarkdownEditorHandle = LexicalEditor;
 
 interface LexicalMarkdownEditorProps {
   content: string;
   onContentChange: (markdown: string) => void;
+  onDirtyChange?: () => void;
   editorRef?: React.MutableRefObject<LexicalEditor | null>;
   onEditorReady?: (editor: LexicalEditor) => void;
 }
@@ -68,15 +70,21 @@ const lexicalTheme = {
 function MarkdownSyncPlugin({
   content,
   onContentChange,
+  onDirtyChange,
   editorRef,
   onEditorReady,
 }: LexicalMarkdownEditorProps) {
   const [editor] = useLexicalComposerContext();
   const onChangeRef = useRef(onContentChange);
+  const onDirtyChangeRef = useRef(onDirtyChange);
   const lastMarkdownRef = useRef(content);
   const applyingExternalChangeRef = useRef(false);
+  /** Skip dirty notification for the initial editor‑population pass so
+   *  opening a file doesn't immediately show "Unsaved". */
+  const skipInitialDirtyRef = useRef(true);
 
   onChangeRef.current = onContentChange;
+  onDirtyChangeRef.current = onDirtyChange;
 
   useEffect(() => {
     if (editorRef) editorRef.current = editor;
@@ -87,20 +95,39 @@ function MarkdownSyncPlugin({
   }, [editor, editorRef, onEditorReady]);
 
   useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
+    return editor.registerUpdateListener(({ dirtyElements, dirtyLeaves, editorState }) => {
       if (applyingExternalChangeRef.current) return;
+      // Capture before read() mutates skipInitialDirtyRef inside.
+      const isInitial = skipInitialDirtyRef.current;
       editorState.read(() => {
         const markdown = $convertToMarkdownString(TRANSFORMERS);
-        if (markdown === lastMarkdownRef.current) return;
+        if (markdown === lastMarkdownRef.current) {
+          if (isInitial) skipInitialDirtyRef.current = false;
+          return;
+        }
         lastMarkdownRef.current = markdown;
+        // During the initial populate pass the markdown round‑trip may
+        // introduce normalisation differences (trailing whitespace, etc.).
+        // Don't propagate as a content change — that would set dirty=true
+        // inside setContent() before we even reach the guard below.
+        if (isInitial) {
+          skipInitialDirtyRef.current = false;
+          return;
+        }
         onChangeRef.current(markdown);
       });
+      if (!isInitial && (dirtyElements.size > 0 || dirtyLeaves.size > 0)) {
+        onDirtyChangeRef.current?.();
+      }
     });
   }, [editor]);
 
   useEffect(() => {
     if (content === lastMarkdownRef.current) return;
     applyingExternalChangeRef.current = true;
+    const resetApplyingFlag = window.setTimeout(() => {
+      applyingExternalChangeRef.current = false;
+    }, 0);
     editor.update(() => {
       const root = $getRoot();
       root.clear();
@@ -108,9 +135,14 @@ function MarkdownSyncPlugin({
       lastMarkdownRef.current = content;
     }, {
       onUpdate: () => {
+        window.clearTimeout(resetApplyingFlag);
         applyingExternalChangeRef.current = false;
       },
     });
+    return () => {
+      window.clearTimeout(resetApplyingFlag);
+      applyingExternalChangeRef.current = false;
+    };
   }, [content, editor]);
 
   return null;
@@ -129,6 +161,7 @@ function CodeHighlightPlugin() {
 export function useLexicalMarkdownEditor({
   content,
   onContentChange,
+  onDirtyChange,
   editorRef,
   onEditorReady,
 }: LexicalMarkdownEditorProps) {
@@ -182,11 +215,13 @@ export function useLexicalMarkdownEditor({
       <TablePlugin hasCellMerge={false} />
       <TableActionPlugin />
       <CodeHighlightPlugin />
+      <SearchHighlightPlugin />
       <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
       <SlashCommandPlugin />
       <MarkdownSyncPlugin
         content={content}
         onContentChange={onContentChange}
+        onDirtyChange={onDirtyChange}
         editorRef={editorRef}
         onEditorReady={onEditorReady}
       />

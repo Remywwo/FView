@@ -4,14 +4,16 @@ import type { LexicalEditor } from "lexical";
 export interface MarkdownEditorProps {
   content: string;
   onContentChange: (markdown: string) => void;
+  onDirtyChange?: () => void;
   editorRef?: React.MutableRefObject<LexicalEditor | null>;
   onEditorReady?: (editor: LexicalEditor) => void;
 }
 
-export function MarkdownEditor({ content, onContentChange, editorRef, onEditorReady }: MarkdownEditorProps) {
+export function MarkdownEditor({ content, onContentChange, onDirtyChange, editorRef, onEditorReady }: MarkdownEditorProps) {
   const editor = useLexicalMarkdownEditor({
     content,
     onContentChange,
+    onDirtyChange,
     editorRef,
     onEditorReady,
   });

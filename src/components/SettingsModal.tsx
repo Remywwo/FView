@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   FONT_FAMILIES,
+  getDefaultHighlightColor,
+  getDefaultUserMessageBgColor,
   LINE_HEIGHTS,
   MAX_FONT_SIZE,
   MIN_FONT_SIZE,
@@ -28,6 +30,8 @@ export function SettingsModal({ open, onClose }: Props) {
   const [showApiKey, setShowApiKey] = useState(false);
   const [tab, setTab] = useState<"general" | "ai">("general");
   const { host } = useExtensionContext();
+  const defaultHighlightColor = getDefaultHighlightColor();
+  const defaultUserMessageBgColor = getDefaultUserMessageBgColor();
 
   // Local AI state — only committed to settings on explicit confirm.
   const [aiProvider, setAiProviderL] = useState<AIProviderChoice>(settings.aiProvider);
@@ -119,8 +123,8 @@ export function SettingsModal({ open, onClose }: Props) {
               style={{
                 fontSize: 14,
                 fontWeight: tab === "general" ? 600 : 400,
-                color: tab === "general" ? "var(--md-link)" : "var(--md-muted)",
-                borderBottom: tab === "general" ? "2px solid var(--md-link)" : "2px solid transparent",
+                color: tab === "general" ? "var(--fview-highlight-color)" : "var(--md-muted)",
+                borderBottom: tab === "general" ? "2px solid var(--fview-highlight-color)" : "2px solid transparent",
                 padding: "5px 14px",
                 background: "none",
                 cursor: "pointer",
@@ -133,8 +137,8 @@ export function SettingsModal({ open, onClose }: Props) {
               style={{
                 fontSize: 14,
                 fontWeight: tab === "ai" ? 600 : 400,
-                color: tab === "ai" ? "var(--md-link)" : "var(--md-muted)",
-                borderBottom: tab === "ai" ? "2px solid var(--md-link)" : "2px solid transparent",
+                color: tab === "ai" ? "var(--fview-highlight-color)" : "var(--md-muted)",
+                borderBottom: tab === "ai" ? "2px solid var(--fview-highlight-color)" : "2px solid transparent",
                 padding: "5px 14px",
                 background: "none",
                 cursor: "pointer",
@@ -171,10 +175,14 @@ export function SettingsModal({ open, onClose }: Props) {
               className={
                 "px-3 py-2.5 rounded-md border text-sm transition-colors " +
                 (lang === "en"
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                  ? ""
                   : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800")
               }
-              style={{ color: lang === "en" ? "var(--md-link)" : "var(--md-fg)" }}
+              style={{
+                color: lang === "en" ? "var(--fview-highlight-color)" : "var(--md-fg)",
+                borderColor: lang === "en" ? "var(--fview-highlight-color)" : undefined,
+                background: lang === "en" ? "color-mix(in srgb, var(--fview-highlight-color) 10%, transparent)" : undefined,
+              }}
             >
               English
             </button>
@@ -183,10 +191,14 @@ export function SettingsModal({ open, onClose }: Props) {
               className={
                 "px-3 py-2.5 rounded-md border text-sm transition-colors " +
                 (lang === "zh"
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                  ? ""
                   : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800")
               }
-              style={{ color: lang === "zh" ? "var(--md-link)" : "var(--md-fg)" }}
+              style={{
+                color: lang === "zh" ? "var(--fview-highlight-color)" : "var(--md-fg)",
+                borderColor: lang === "zh" ? "var(--fview-highlight-color)" : undefined,
+                background: lang === "zh" ? "color-mix(in srgb, var(--fview-highlight-color) 10%, transparent)" : undefined,
+              }}
             >
               中文
             </button>
@@ -206,10 +218,14 @@ export function SettingsModal({ open, onClose }: Props) {
               className={
                 "px-3 py-2.5 rounded-md border text-sm transition-colors flex items-center justify-center gap-2 " +
                 (!isDark
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                  ? ""
                   : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800")
               }
-              style={{ color: !isDark ? "var(--md-link)" : "var(--md-fg)" }}
+              style={{
+                color: !isDark ? "var(--fview-highlight-color)" : "var(--md-fg)",
+                borderColor: !isDark ? "var(--fview-highlight-color)" : undefined,
+                background: !isDark ? "color-mix(in srgb, var(--fview-highlight-color) 10%, transparent)" : undefined,
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="4" />
@@ -222,10 +238,14 @@ export function SettingsModal({ open, onClose }: Props) {
               className={
                 "px-3 py-2.5 rounded-md border text-sm transition-colors flex items-center justify-center gap-2 " +
                 (isDark
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+                  ? ""
                   : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800")
               }
-              style={{ color: isDark ? "var(--md-link)" : "var(--md-fg)" }}
+              style={{
+                color: isDark ? "var(--fview-highlight-color)" : "var(--md-fg)",
+                borderColor: isDark ? "var(--fview-highlight-color)" : undefined,
+                background: isDark ? "color-mix(in srgb, var(--fview-highlight-color) 10%, transparent)" : undefined,
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
@@ -339,6 +359,73 @@ export function SettingsModal({ open, onClose }: Props) {
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="mb-5">
+          <ColorField
+            id="fview-color-highlight"
+            label={t("settings.colorHighlight")}
+            value={settings.highlightColor}
+            defaultValue={defaultHighlightColor}
+            resetLabel={t("settings.colorReset")}
+            onChange={(highlightColor) => update({ highlightColor })}
+          />
+          <ColorField
+            id="fview-color-user-message"
+            label={t("settings.colorUserMessage")}
+            value={settings.userMessageBgColor}
+            defaultValue={defaultUserMessageBgColor}
+            resetLabel={t("settings.colorReset")}
+            onChange={(userMessageBgColor) => update({ userMessageBgColor })}
+          />
+        </div>
+
+        <div
+          className="rounded-md border p-3 mb-5"
+          style={{
+            background: "var(--md-code-bg)",
+            borderColor: "var(--md-border)",
+            color: "var(--md-fg)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "var(--fview-highlight-color)",
+                boxShadow: "0 0 0 3px color-mix(in srgb, var(--fview-highlight-color) 18%, transparent)",
+              }}
+            />
+            <span style={{ color: "color-mix(in srgb, var(--fview-highlight-color) 78%, var(--md-fg))", fontSize: 13 }}>
+              {t("app.unsaved")}
+            </span>
+          </div>
+          <div
+            style={{
+              background: "var(--fview-user-message-bg)",
+              borderRadius: 8,
+              padding: "8px 10px",
+              fontSize: 13,
+              color: "#fff",
+            }}
+          >
+            {t("settings.colorUserMessagePreview")}
+          </div>
+          <div style={{ marginTop: 10, fontSize: 13 }}>
+            {t("settings.colorSearchPreviewPrefix")}{" "}
+            <mark
+              style={{
+                background: "color-mix(in srgb, var(--fview-highlight-color) 46%, transparent)",
+                color: "var(--md-fg)",
+                borderRadius: 2,
+                padding: "0 2px",
+              }}
+            >
+              keyword
+            </mark>
+          </div>
         </div>
 
         </>)}
@@ -507,8 +594,8 @@ export function SettingsModal({ open, onClose }: Props) {
               className="text-sm px-4 py-1.5 rounded-md border"
               style={{
                 color: aiChanged ? "#fff" : "var(--md-muted)",
-                background: aiChanged ? "var(--md-accent)" : "var(--md-code-bg)",
-                borderColor: aiChanged ? "var(--md-accent)" : "var(--md-border)",
+                background: aiChanged ? "var(--fview-highlight-color)" : "var(--md-code-bg)",
+                borderColor: aiChanged ? "var(--fview-highlight-color)" : "var(--md-border)",
                 cursor: aiChanged ? "pointer" : "not-allowed",
                 opacity: aiChanged ? 1 : 0.5,
               }}
@@ -543,6 +630,58 @@ function localizedHeightLabel(value: number, t: (k: string) => string): string {
   if (value <= 1.7) return t("settings.lhComfortable");
   if (value <= 1.9) return t("settings.lhRelaxed");
   return t("settings.lhLoose");
+}
+
+function ColorField({
+  id,
+  label,
+  value,
+  defaultValue,
+  resetLabel,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  defaultValue: string;
+  resetLabel: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="mb-4">
+      <label htmlFor={id} className="block text-xs mb-1.5" style={{ color: "var(--md-muted)" }}>
+        {label}
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          id={id}
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-11 cursor-pointer rounded-md border border-gray-200 dark:border-gray-700 p-1"
+          style={{ background: "var(--md-bg)" }}
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => {
+            const next = e.target.value.trim();
+            if (/^#[0-9a-f]{6}$/i.test(next)) onChange(next);
+          }}
+          className="flex-1 rounded-md border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          style={{ background: "var(--md-bg)", color: "var(--md-fg)", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
+        />
+        <button
+          type="button"
+          onClick={() => onChange(defaultValue)}
+          className="text-xs px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          style={{ color: "var(--md-muted)" }}
+        >
+          {resetLabel}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export type { Lang };

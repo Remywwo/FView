@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { useTheme } from "@/hooks/useTheme";
 
 export type FontFamily = "system" | "sans" | "serif" | "mono" | "system-ui" | "humanist" | "georgia" | "menlo" | "newspaper" | "rounded";
 export type FontSize = number;
@@ -32,6 +33,9 @@ export interface Settings {
   fontFamily: FontFamily;
   fontSize: FontSize;
   lineHeight: LineHeight;
+  // ── Appearance colors ──
+  highlightColor: string;
+  userMessageBgColor: string;
   // ── AI ──
   aiProvider: AIProviderChoice;
   aiApiKey: string;
@@ -46,6 +50,8 @@ const DEFAULT_SETTINGS: Settings = {
   fontFamily: "system",
   fontSize: DEFAULT_FONT_SIZE,
   lineHeight: DEFAULT_LINE_HEIGHT,
+  highlightColor: "#4f46e5",
+  userMessageBgColor: "#2563eb",
   aiProvider: "none",
   aiApiKey: "",
   aiBaseUrl: "https://api.openai.com/v1",
@@ -54,6 +60,12 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 const STORAGE_KEY = "fview:settings";
+
+const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
+
+function normalizeColor(value: unknown, fallback: string): string {
+  return typeof value === "string" && HEX_COLOR_RE.test(value) ? value : fallback;
+}
 
 function loadSettings(): Settings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
@@ -71,6 +83,8 @@ function loadSettings(): Settings {
       lineHeight: Number.isFinite(lh) && lh >= MIN_LINE_HEIGHT && lh <= MAX_LINE_HEIGHT
         ? lh
         : DEFAULT_SETTINGS.lineHeight,
+      highlightColor: normalizeColor(parsed.highlightColor, DEFAULT_SETTINGS.highlightColor),
+      userMessageBgColor: normalizeColor(parsed.userMessageBgColor, DEFAULT_SETTINGS.userMessageBgColor),
       aiProvider: typeof parsed.aiProvider === "string" && ["openai-compat", "anthropic", "none"].includes(parsed.aiProvider)
         ? (parsed.aiProvider as AIProviderChoice)
         : DEFAULT_SETTINGS.aiProvider,
@@ -149,6 +163,14 @@ export function getFontStack(family: FontFamily): string | undefined {
   return FONT_FAMILIES.find((f) => f.value === family)?.stack;
 }
 
+export function getDefaultHighlightColor(): string {
+  return DEFAULT_SETTINGS.highlightColor;
+}
+
+export function getDefaultUserMessageBgColor(): string {
+  return DEFAULT_SETTINGS.userMessageBgColor;
+}
+
 interface SettingsContextValue {
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
@@ -159,6 +181,7 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(loadSettings);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     try {
@@ -167,6 +190,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       // ignore
     }
   }, [settings]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.highlightColor === DEFAULT_SETTINGS.highlightColor) {
+      root.style.removeProperty("--fview-highlight-color");
+    } else {
+      root.style.setProperty("--fview-highlight-color", settings.highlightColor);
+    }
+    root.style.setProperty("--fview-user-message-bg", settings.userMessageBgColor);
+  }, [
+    settings.highlightColor,
+    settings.userMessageBgColor,
+    isDark,
+  ]);
 
   const update = useCallback((patch: Partial<Settings>) => {
     setSettings((prev) => ({ ...prev, ...patch }));

@@ -16,6 +16,7 @@ export interface LoadedFile {
   content: string;
   isBinary: boolean;
   binaryBytes?: Uint8Array;
+  savedContent: string;
   dirty: boolean;
 }
 
@@ -36,7 +37,14 @@ interface UseFileLoaderApi {
   saveAs: () => Promise<void>;
   loadFromPath: (path: string) => Promise<void>;
   setContent: (content: string) => void;
+  markDirty: () => void;
   close: () => void;
+  /** True when the buffer is dirty and the user has requested close —
+   *  the host should render an inline Save / Discard / Cancel prompt. */
+  closePending: boolean;
+  confirmClose: () => Promise<void>;
+  discardClose: () => void;
+  cancelClose: () => void;
   setError: (e: string | null) => void;
 }
 
@@ -70,6 +78,7 @@ async function readAnyFile(path: string): Promise<LoadedFile> {
       content: "",
       isBinary: true,
       binaryBytes: bytes,
+      savedContent: "",
       dirty: false,
     };
   }
@@ -84,6 +93,7 @@ async function readAnyFile(path: string): Promise<LoadedFile> {
     isEditable: detected.isEditable,
     content: text,
     isBinary: false,
+    savedContent: text,
     dirty: false,
   };
 }
@@ -103,6 +113,7 @@ export function useFileLoader(opts?: {
   const [current, setCurrent] = useState<LoadedFile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [closePending, setClosePending] = useState(false);
   const currentRef = useRef<LoadedFile | null>(null);
   currentRef.current = current;
   const notifyRef = useRef(opts?.notify);
@@ -190,7 +201,7 @@ export function useFileLoader(opts?: {
     }
     try {
       await writeTextFile(cur.path, cur.content);
-      setCurrent({ ...cur, dirty: false });
+      setCurrent({ ...cur, savedContent: cur.content, dirty: false });
     } catch (e: any) {
       setError(e?.message || String(e));
     }
@@ -199,14 +210,58 @@ export function useFileLoader(opts?: {
   const setContent = useCallback((content: string) => {
     setCurrent((prev) => {
       if (!prev) return prev;
-      if (prev.content === content) return prev;
-      return { ...prev, content, dirty: true };
+      const dirty = content !== prev.savedContent;
+      if (prev.content === content && prev.dirty === dirty) return prev;
+      return { ...prev, content, dirty };
+    });
+  }, []);
+
+  const markDirty = useCallback(() => {
+    setCurrent((prev) => {
+      if (!prev || prev.dirty) return prev;
+      return { ...prev, dirty: true };
     });
   }, []);
 
   const close = useCallback(() => {
+    const cur = currentRef.current;
+    if (cur?.dirty) {
+      setClosePending(true);
+      return;
+    }
     setCurrent(null);
     setError(null);
+  }, []);
+
+  const confirmClose = useCallback(async () => {
+    const cur = currentRef.current;
+    if (!cur) return;
+    if (cur.dirty) {
+      if (!cur.path) {
+        await saveAs();
+      } else {
+        try {
+          await writeTextFile(cur.path, cur.content);
+          setCurrent({ ...cur, savedContent: cur.content, dirty: false });
+        } catch (e: any) {
+          setError(e?.message || String(e));
+          return; // keep the dialog open so the user can retry
+        }
+      }
+    }
+    setClosePending(false);
+    setCurrent(null);
+    setError(null);
+  }, [saveAs]);
+
+  const discardClose = useCallback(() => {
+    setClosePending(false);
+    setCurrent(null);
+    setError(null);
+  }, []);
+
+  const cancelClose = useCallback(() => {
+    setClosePending(false);
   }, []);
 
   // CLI args: read first positional file argument on startup
@@ -253,5 +308,5 @@ export function useFileLoader(opts?: {
     run: close,
   });
 
-  return { current, loading, error, open, save, saveAs, loadFromPath, setContent, close, setError };
+  return { current, loading, error, open, save, saveAs, loadFromPath, setContent, markDirty, close, closePending, confirmClose, discardClose, cancelClose, setError };
 }

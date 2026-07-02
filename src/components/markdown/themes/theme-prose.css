@@ -683,9 +683,9 @@
 
 .lexical-editor ::selection,
 .lexical-editor ::-moz-selection {
-  background: color-mix(in srgb, var(--md-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--fview-highlight-color) 46%, transparent);
   color: inherit;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 /* ── Focus ring — subtle ──────────────────────────────────────────── */

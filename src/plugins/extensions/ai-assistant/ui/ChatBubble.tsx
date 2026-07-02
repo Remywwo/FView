@@ -14,7 +14,7 @@ export function ChatBubble({ message }: { message: ChatMessage }) {
           borderRadius: 12,
           borderBottomRightRadius: isUser ? 4 : 12,
           borderBottomLeftRadius: isUser ? 12 : 4,
-          background: isUser ? "var(--md-link)" : "var(--md-code-bg)",
+          background: isUser ? "var(--fview-user-message-bg)" : "var(--md-code-bg)",
           color: isUser ? "#fff" : "var(--md-fg)",
           fontSize: 13,
           lineHeight: 1.55,

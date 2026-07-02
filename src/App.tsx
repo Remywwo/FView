@@ -42,7 +42,7 @@ export default function App() {
     notify: (msg, level) => hostRef.current?.notify(msg, level),
     t,
   });
-  const { current, setContent, loadFromPath, error } = loader;
+  const { current, setContent, markDirty, loadFromPath, error, closePending, confirmClose, discardClose, cancelClose } = loader;
   const { isDark } = theme;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -299,6 +299,7 @@ export default function App() {
               <MarkdownPreview
                 file={current}
                 setContent={setContent}
+                markDirty={markDirty}
                 onSelectionChange={(t) => setEditorSelection("markdown", t)}
                 onTocContainerReady={setTocContainer}
               />
@@ -330,6 +331,25 @@ export default function App() {
         </div>
       </div>
 
+      {closePending && (
+        <div className="confirm-overlay" role="alertdialog" aria-modal="true">
+          <div className="confirm-card">
+            <div className="confirm-title">{t("app.closeUnsavedTitle")}</div>
+            <div className="confirm-body">{t("app.closeUnsavedBody")}</div>
+            <div className="confirm-actions">
+              <button type="button" className="ghost" onClick={cancelClose}>
+                {t("docSwitcher.cancel")}
+              </button>
+              <button type="button" onClick={discardClose}>
+                {t("docSwitcher.discard")}
+              </button>
+              <button type="button" className="primary" onClick={confirmClose}>
+                {t("docSwitcher.save")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
       <ToastHost />

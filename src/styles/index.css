@@ -11,6 +11,8 @@
   --md-code-bg: #f6f8fa;
   --md-blockquote-border: #d1d5db;
   --md-accent: #4f46e5;
+  --fview-highlight-color: #4f46e5;
+  --fview-user-message-bg: #2563eb;
   --sidebar-width: 290px;
 
   /* Set by useSettings; the markdown editor reads these. */
@@ -28,6 +30,8 @@
   --md-code-bg: #2a2a2a;
   --md-blockquote-border: #4b5563;
   --md-accent: #818cf8;
+  --fview-highlight-color: #818cf8;
+  --fview-user-message-bg: #2563eb;
 }
 
 html, body {
@@ -36,6 +40,16 @@ html, body {
   padding: 0;
   background: var(--md-bg);
   overflow: hidden;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--fview-highlight-color) 46%, transparent);
+  color: inherit;
+}
+
+::-moz-selection {
+  background: color-mix(in srgb, var(--fview-highlight-color) 46%, transparent);
+  color: inherit;
 }
 
 #root {
@@ -72,6 +86,16 @@ html, body {
   background: transparent !important;
   border-right: 1px solid var(--md-border);
   color: var(--md-muted);
+}
+.cm-editor .cm-selectionBackground,
+.cm-editor.cm-focused .cm-selectionBackground {
+  background: color-mix(in srgb, var(--fview-highlight-color) 46%, transparent) !important;
+}
+.cm-editor .cm-content ::selection {
+  background: color-mix(in srgb, var(--fview-highlight-color) 46%, transparent);
+}
+.cm-editor .cm-content ::-moz-selection {
+  background: color-mix(in srgb, var(--fview-highlight-color) 46%, transparent);
 }
 
 /* Highlight.js token colors. The actual rules come from the
@@ -382,6 +406,7 @@ html, body {
   display: none;
 }
 .sidebar-panel {
+  padding-left: 10px;
   height: 100%;
   overflow: auto;
   scrollbar-width: none;
@@ -469,7 +494,7 @@ html, body {
   padding: 0.25rem 0.6rem;
   padding-left: calc(0.6rem + (var(--depth, 1) - 1) * 0.85rem);
   border: none;
-  border-radius: 0 4px 4px 0;
+  border-radius: 6px;
   background: transparent;
   color: var(--md-muted);
   font: inherit;
@@ -523,6 +548,10 @@ html, body {
   font-size: 14px;
   line-height: 1.4;
   min-height: 0;
+  scrollbar-width: none;
+}
+.folder-sidebar-body::-webkit-scrollbar {
+  display: none;
 }
 .folder-error {
   color: #ef4444;
@@ -550,6 +579,7 @@ html, body {
 }
 .tree-row:hover {
   background: var(--md-code-bg);
+  border-radius: 6px;
 }
 .tree-close-btn {
   display: none;
@@ -1012,7 +1042,7 @@ html, body {
   min-width: 0;
 }
 .toolbar .file-info { color: var(--md-muted); font-family: "JetBrains Mono", monospace; font-size: 0.8em; }
-.toolbar .dirty-dot { color: var(--md-accent); font-weight: 700; }
+.toolbar .dirty-dot { color: var(--fview-highlight-color); font-weight: 700; }
 .toolbar .divider { width: 1px; height: 18px; background: var(--md-border); }
 
 /* ── PDF floating toolbar — frosted glass pill ───────────────────── */
@@ -1108,14 +1138,22 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
+  width: fit-content;
   min-width: 0;
+  max-width: 100%;
+}
+
+.app-toolbar .doc-switcher {
+  max-width: 70%;
 }
 
 .doc-switcher-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.5rem;
-  max-width: 460px;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.32rem 0.65rem;
   background: color-mix(in srgb, var(--md-bg) 65%, transparent);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
@@ -1130,16 +1168,33 @@ html, body {
     border-color 0.15s ease,
     box-shadow 0.15s ease;
 }
-.doc-switcher-pill:hover:not(:disabled) {
+.toolbar .doc-switcher-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.32rem 0.65rem;
+  background: color-mix(in srgb, var(--md-bg) 65%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-border) 70%, transparent);
+  border-radius: 9px;
+  color: var(--md-fg);
+}
+.doc-switcher-pill:hover:not([aria-disabled="true"]) {
   background: color-mix(in srgb, var(--md-code-bg) 90%, transparent);
   border-color: color-mix(in srgb, var(--md-border) 95%, transparent);
 }
-.doc-switcher-pill:disabled {
+.toolbar .doc-switcher-pill:hover:not([aria-disabled="true"]) {
+  background: color-mix(in srgb, var(--md-code-bg) 90%, transparent);
+  border-color: color-mix(in srgb, var(--md-border) 95%, transparent);
+}
+.doc-switcher-pill[aria-disabled="true"] {
   opacity: 0.55;
   cursor: not-allowed;
 }
 .doc-switcher.is-open .doc-switcher-pill {
-  border-color: color-mix(in srgb, var(--md-accent) 55%, var(--md-border));
+  border-color: color-mix(in srgb, var(--fview-highlight-color) 55%, var(--md-border));
 }
 
 .doc-switcher-icon {
@@ -1159,32 +1214,28 @@ html, body {
   text-overflow: ellipsis;
   min-width: 0;
   flex: 0 1 auto;
-  max-width: 360px;
+  /* max-width: min(360px, 52vw); */
   text-align: left;
 }
 
-.doc-switcher-dirty {
+.doc-switcher-dirty-dot {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.16rem 0.5rem 0.16rem 0.42rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--md-accent) 14%, transparent);
-  color: color-mix(in srgb, var(--md-accent) 78%, var(--md-fg));
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--fview-highlight-color);
+  font-size: 0.9rem;
+  line-height: 1;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--fview-highlight-color) 35%, transparent);
+  animation: doc-switcher-pulse 1.6s ease-in-out infinite;
+}
+.doc-switcher-dirty-label {
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--fview-highlight-color) 78%, var(--md-fg));
   font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: -0.005em;
   line-height: 1.1;
   white-space: nowrap;
-  flex: 0 0 auto;
-}
-.doc-switcher-dirty-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--md-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-accent) 18%, transparent);
-  animation: doc-switcher-pulse 1.6s ease-in-out infinite;
 }
 @keyframes doc-switcher-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -1296,7 +1347,7 @@ html, body {
 }
 .doc-switcher-item.is-active,
 .doc-switcher-item:hover {
-  background: color-mix(in srgb, var(--md-accent) 12%, transparent);
+  background: color-mix(in srgb, var(--fview-highlight-color) 12%, transparent);
 }
 .doc-switcher-item-icon {
   display: inline-flex;
@@ -1319,6 +1370,39 @@ html, body {
   text-overflow: ellipsis;
   max-width: 100%;
 }
+.doc-switcher-item-snippet {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--md-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  /* Keep the marker visible even if the surrounding text is truncated. */
+  overflow-anchor: none;
+}
+.doc-switcher-item-mark {
+  background: color-mix(in srgb, var(--fview-highlight-color) 42%, transparent);
+  color: var(--md-fg);
+  border-radius: 4px;
+  padding: 0 1px;
+  font-weight: 600;
+}
+.doc-switcher-fallback-mark {
+  background: color-mix(in srgb, var(--fview-highlight-color) 50%, transparent);
+  color: var(--md-fg);
+  border-radius: 4px;
+  padding: 0 1px;
+}
+.doc-switcher-item-extra {
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--fview-highlight-color);
+  font-weight: 600;
+  font-style: italic;
+  white-space: nowrap;
+}
 .doc-switcher-item-parent {
   font-size: 0.7rem;
   color: var(--md-muted);
@@ -1327,6 +1411,12 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+::highlight(fview-search) {
+  background: color-mix(in srgb, var(--fview-highlight-color) 46%, transparent);
+  color: var(--md-fg);
+  border-radius: 4px;
 }
 .doc-switcher-item-current {
   color: var(--md-accent);
@@ -1393,6 +1483,100 @@ html, body {
 .doc-switcher-confirm-actions button.ghost {
   border-color: transparent;
   color: var(--md-muted);
+}
+
+/* ── Close-confirmation modal overlay ─────────────────────────────── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--md-bg) 70%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.confirm-card {
+  background: var(--md-bg);
+  border: 1px solid var(--md-border);
+  border-radius: 14px;
+  padding: 24px;
+  max-width: 400px;
+  width: min(92vw, 400px);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--md-fg) 12%, transparent);
+  animation: confirm-in 0.18s ease-out;
+}
+@keyframes confirm-in {
+  from { opacity: 0; transform: scale(0.95) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.confirm-title {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--md-fg);
+  margin-bottom: 8px;
+}
+.confirm-body {
+  font-size: 0.85rem;
+  color: var(--md-muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.confirm-actions button {
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 550;
+  cursor: pointer;
+  border: 1px solid var(--md-border);
+  background: var(--md-bg);
+  color: var(--md-fg);
+  transition: background 0.12s ease;
+}
+.confirm-actions button:hover {
+  background: var(--md-code-bg);
+}
+.confirm-actions button.primary {
+  background: var(--fview-highlight-color);
+  border-color: var(--fview-highlight-color);
+  color: #fff;
+}
+.confirm-actions button.primary:hover {
+  opacity: 0.88;
+}
+.confirm-actions button.ghost {
+  border-color: transparent;
+  color: var(--md-muted);
+}
+
+/* ── Settings version label ────────────────────────────────────────── */
+.settings-version {
+  font-size: 0.7rem;
+  color: var(--md-muted);
+  opacity: 0.55;
+  font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
+  user-select: none;
+}
+
+/* ── Help modal version badge ──────────────────────────────────────── */
+.help-version {
+  font-size: 0.7rem;
+  font-weight: 450;
+  color: var(--md-muted);
+  opacity: 0.58;
+  background: color-mix(in srgb, var(--md-muted) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-muted) 16%, transparent);
+  border-radius: 12px;
+  padding: 1px 8px;
+  font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
+  user-select: none;
+  vertical-align: middle;
 }
 
 @media (max-width: 800px) {
@@ -1705,4 +1889,14 @@ html, body {
 .textLayer * {
   user-select: text;
   -webkit-user-select: text;
+}
+.textLayer ::selection,
+.textLayer *::selection {
+  background: color-mix(in srgb, var(--fview-highlight-color) 46%, transparent);
+  color: inherit;
+}
+.textLayer ::-moz-selection,
+.textLayer *::-moz-selection {
+  background: color-mix(in srgb, var(--fview-highlight-color) 46%, transparent);
+  color: inherit;
 }

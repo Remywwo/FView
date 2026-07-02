@@ -16,7 +16,7 @@ FView Power has a two-pane layout: a **resizable sidebar** (290–480 px) on the
 
 - **Sidebar top**: file actions (Open, Open Folder, Save, Save As, Close). A toggle button switches between the folder tree and document outline when both are available.
 - **Sidebar bottom**: Settings, Help, and AI buttons.
-- **Floating toolbar**: a pill at the top of the content area holds the **Document Switcher** — a searchable file picker (`⌘P`) that lets you switch between files in the open folder, recent files, and the current path.
+- **Floating toolbar**: a pill at the top of the content area holds the **Document Switcher** — a searchable file picker (`⌘P` / `⌘F`) that lets you switch between files in the open folder, recent files, the current path, and search inside the current document.
 
 ## Supported File Types
 
@@ -38,19 +38,16 @@ FView Power has a two-pane layout: a **resizable sidebar** (290–480 px) on the
 | `⌘O` | Open file |
 | `⇧⌘O` | Open folder |
 | `⌘P` | Switch document / search files |
+| `⌘F` | Search files & current document content |
 | `⌘S` | Save |
 | `⇧⌘S` | Save As |
-| `⌘W` | Close current file |
+| `⌘W` | Close current file (prompts to save if unsaved) |
 | `⌘.` | Toggle light/dark theme |
 | `Esc` | Close popup / menu |
 
 ### Markdown
 | Key | Action |
 |---|---|
-| `⌘F` | Find in document |
-| `Enter` | Next match |
-| `⇧Enter` | Previous match |
-| `Esc` | Close search |
 | `/` | Slash command menu |
 
 ### PDF
@@ -76,7 +73,7 @@ FView Power has a two-pane layout: a **resizable sidebar** (290–480 px) on the
 
 - **Drag & drop** — drop a file or folder anywhere on the window to open it
 - **CLI support** — `fview path/to/file.md` opens the file directly
-- **Markdown**: Lexical WYSIWYG editor, slash commands, GFM tables with toolbar, find & replace, external links open in system browser
+- **Markdown**: Lexical WYSIWYG editor, slash commands, GFM tables with toolbar, in-document search, external links open in system browser
 - **Code editor**: syntax highlighting for 20+ languages, right-click context menu (Format / Copy / Cut / Paste)
 - **HTML editor**: live preview with built-in server, split/editor/preview modes, right-click menus
 - **PDF**: page navigation, zoom, floating toolbar, sidebar outline with auto-highlight
@@ -84,8 +81,8 @@ FView Power has a two-pane layout: a **resizable sidebar** (290–480 px) on the
 - **Images**: zoom, reset, drag-to-pan, click-to-edit zoom percentage
 - **Folder browsing**: resizable sidebar with file tree, right-click context menu (new file/folder, rename, delete), auto-expand ancestors, skip `node_modules`/`.git`/`target`/`dist` etc.
 - **Document outline**: sidebar tab shows markdown headings or PDF bookmarks with active tracking
-- **Document Switcher**: `⌘P` to search and switch files across open folder, recents, and current path
-- **Dirty tracking**: unsaved indicator with floating pill in the toolbar
+- **Document Switcher**: `⌘P` to search and switch files across open folder, recents, and current path. `⌘F` also opens the switcher and searches both file names and current document content.
+- **Dirty tracking**: unsaved indicator with floating pill in the toolbar; closing a modified file prompts to save, discard, or cancel
 - **Settings** persisted to `localStorage`: language (en/zh), theme, font family, font size (8–72px), line height
 - **Resizable sidebar**: drag the right edge (290–480 px), width persisted across sessions
 

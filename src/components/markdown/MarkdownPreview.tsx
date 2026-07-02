@@ -6,41 +6,32 @@ import type { LoadedFile } from "@/hooks/useFileLoader";
 import { useSettings, getFontStack } from "@/hooks/useSettings";
 import { useI18n } from "@/hooks/useI18n";
 import { useTheme } from "@/hooks/useTheme";
-import { useRegisterCommand } from "@/hooks/useCommands";
 import { MarkdownEditor } from "./editor/MarkdownEditor";
-import { SearchBar } from "./editor/SearchBar";
-import { useSearch } from "./editor/useSearch";
 import { applyGithubTheme } from "./themes/loadTheme";
 
 interface Props {
   file: LoadedFile;
   setContent: (s: string) => void;
+  markDirty?: () => void;
   onSelectionChange?: (text: string) => void;
   onTocContainerReady?: (el: HTMLDivElement | null) => void;
 }
 
-export function MarkdownPreview({ file, setContent, onTocContainerReady }: Props) {
+export function MarkdownPreview({ file, setContent, markDirty, onTocContainerReady }: Props) {
   const { settings } = useSettings();
   const { lang } = useI18n();
   const { isDark } = useTheme();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [tocContainer, setTocContainer] = useState<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
-  // Incremented when editor is ready to trigger search hook re-render.
-  const [, setEditorReady] = useState(0);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; text: string } | null>(null);
 
-  const search = useSearch(editorRef);
-  const onEditorReady = useCallback(() => setEditorReady((n) => n + 1), []);
+  const onEditorReady = useCallback(() => {}, []);
   const setEditorContainerRef = useCallback((el: HTMLDivElement | null) => {
     containerRef.current = el;
     setTocContainer(el);
     onTocContainerReady?.(el);
   }, [onTocContainerReady]);
-
-  // Cmd+F → toggle search bar
-  const toggleSearch = useCallback(() => search.toggle(), [search]);
-  useRegisterCommand({ id: "md.find", label: "Find", shortcut: "Mod+F", capture: true, run: toggleSearch });
 
   // Close context menu
   useEffect(() => {
@@ -98,19 +89,6 @@ export function MarkdownPreview({ file, setContent, onTocContainerReady }: Props
         if (text) { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, text }); }
       }}
     >
-      {/* Search bar */}
-      {search.open && (
-        <SearchBar
-          term={search.term}
-          onTermChange={search.setTerm}
-          total={search.total}
-          activeIdx={search.activeIdx}
-          onNext={search.next}
-          onPrev={search.prev}
-          onClose={search.close}
-        />
-      )}
-
       {/* Editor */}
       <div
         ref={setEditorContainerRef}
@@ -119,6 +97,7 @@ export function MarkdownPreview({ file, setContent, onTocContainerReady }: Props
         <MarkdownEditor
           content={file.content}
           onContentChange={setContent}
+          onDirtyChange={markDirty}
           editorRef={editorRef}
           onEditorReady={onEditorReady}
         />

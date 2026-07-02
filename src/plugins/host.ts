@@ -1,3 +1,4 @@
+import type { LexicalEditor } from "lexical";
 import type { LoadedFile } from "@/hooks/useFileLoader";
 import type { Lang } from "@/hooks/useI18n";
 import type { Settings } from "@/hooks/useSettings";
@@ -90,6 +91,12 @@ export interface ConcreteHostAPI extends Omit<HostAPIProtocol, "file" | "selecti
     setContent(text: string): void;
     _emit(): void;
   };
+  readonly editor: {
+    /** Set the active Lexical editor instance (called by MarkdownPreview). */
+    set(editor: LexicalEditor | null): void;
+    /** Get the active Lexical editor instance, or null. */
+    get(): LexicalEditor | null;
+  };
   readonly selection: {
     get(): SelectionSnapshot;
     subscribe(cb: () => void): () => void;
@@ -127,6 +134,7 @@ export function createHostAPI(deps: HostDeps): ConcreteHostAPI {
   const notifyBus = createBus();       // notifications only
   const fileBus = createBus();         // file changes only
   let nextNotificationId = 1;
+  let activeEditor: LexicalEditor | null = null;
 
   const host: ConcreteHostAPI = {
     file: {
@@ -134,6 +142,10 @@ export function createHostAPI(deps: HostDeps): ConcreteHostAPI {
       setContent: (text) => deps.loader.setContent(text),
       subscribe: fileBus.subscribe,
       _emit: fileBus.emit,
+    },
+    editor: {
+      set: (editor) => { activeEditor = editor; },
+      get: () => activeEditor,
     },
     selection: {
       get: () => getSelection(),

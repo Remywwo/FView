@@ -11,6 +11,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { isTauriRuntime } from "@/utils/platform";
 
 const CODE_FONT_FAMILY = '"JetBrains Mono", "SF Mono", Menlo, Monaco, Consolas, monospace';
+const PREVIEW_SELECTION_STYLE_ID = "fview-preview-selection-style";
 
 interface Props {
   file: LoadedFile;
@@ -19,6 +20,18 @@ interface Props {
 }
 
 type Mode = "split" | "editor" | "preview";
+
+function withPreviewSelectionStyle(content: string, highlightColor: string): string {
+  const style = `<style id="${PREVIEW_SELECTION_STYLE_ID}">::selection{background:color-mix(in srgb, ${highlightColor} 46%, transparent);color:inherit}::-moz-selection{background:color-mix(in srgb, ${highlightColor} 46%, transparent);color:inherit}</style>`;
+  const withoutPrevious = content.replace(
+    new RegExp(`<style\\s+id=["']${PREVIEW_SELECTION_STYLE_ID}["'][\\s\\S]*?<\\/style>`, "i"),
+    "",
+  );
+  if (/<\/head\s*>/i.test(withoutPrevious)) {
+    return withoutPrevious.replace(/<\/head\s*>/i, `${style}</head>`);
+  }
+  return `${style}${withoutPrevious}`;
+}
 
 export function HtmlPreview({ file, setContent, isDark }: Props) {
   const { t } = useI18n();
@@ -68,7 +81,10 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
         setServerError(null);
         const p = await invoke<number>("start_html_server", {
           htmlPath: fileRef.current.path,
-          initialContent: latestContentRef.current,
+          initialContent: withPreviewSelectionStyle(
+            latestContentRef.current,
+            settings.highlightColor,
+          ),
         });
         if (!cancelled) {
           setPort(p);
@@ -84,7 +100,7 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [file.path]);
+  }, [file.path, settings.highlightColor]);
 
   // Close context menus on outside click
   useEffect(() => {
@@ -168,7 +184,10 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
     const t = setTimeout(async () => {
       try {
         await invoke("update_html_preview_content", {
-          content: latestContentRef.current,
+          content: withPreviewSelectionStyle(
+            latestContentRef.current,
+            settings.highlightColor,
+          ),
         });
         if (!cancelled) setIframeKey((k) => k + 1);
       } catch (e) {
@@ -179,7 +198,7 @@ export function HtmlPreview({ file, setContent, isDark }: Props) {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [file.content, port]);
+  }, [file.content, port, settings.highlightColor]);
 
   // Stop server on unmount
   useEffect(() => {

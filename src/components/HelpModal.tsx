@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { version as appVersion } from "../../package.json";
 import { useI18n } from "@/hooks/useI18n";
 import { isMacPlatform } from "@/utils/platform";
 
@@ -45,8 +46,9 @@ export function HelpModal({ open, onClose }: Props) {
           className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0"
           style={{ borderColor: "var(--md-border)" }}
         >
-          <h2 className="text-base font-semibold" style={{ color: "var(--md-fg)" }}>
+          <h2 className="text-base font-semibold flex items-center gap-2" style={{ color: "var(--md-fg)" }}>
             {t("help.title")}
+            <span className="help-version">v{appVersion}</span>
           </h2>
           <button
             onClick={onClose}
@@ -80,6 +82,7 @@ export function HelpModal({ open, onClose }: Props) {
               <tr><td><Kbd mac="⌘O" win="Ctrl+O" /></td><td>{t("app.openFile")}</td></tr>
               <tr><td><Kbd mac="⇧⌘O" win="Ctrl+Shift+O" /></td><td>{t("app.openFolder")}</td></tr>
               <tr><td><Kbd mac="⌘P" win="Ctrl+P" /></td><td>{t("help.switchDoc")}</td></tr>
+              <tr><td><Kbd mac="⌘F" win="Ctrl+F" /></td><td>{t("help.findInDoc")}</td></tr>
               <tr><td><Kbd mac="⌘S" win="Ctrl+S" /></td><td>{t("app.save")}</td></tr>
               <tr><td><Kbd mac="⇧⌘S" win="Ctrl+Shift+S" /></td><td>{t("app.saveAs")}</td></tr>
               <tr><td><Kbd mac="⌘W" win="Ctrl+W" /></td><td>{t("app.close")}</td></tr>
@@ -94,10 +97,6 @@ export function HelpModal({ open, onClose }: Props) {
               <tr><th>{t("help.colShortcut")}</th><th>{t("help.colAction")}</th></tr>
             </thead>
             <tbody>
-              <tr><td><Kbd mac="⌘F" win="Ctrl+F" /></td><td>{t("help.findInDoc")}</td></tr>
-              <tr><td><kbd>Enter</kbd></td><td>{t("help.nextMatch")}</td></tr>
-              <tr><td><kbd>⇧Enter</kbd></td><td>{t("help.prevMatch")}</td></tr>
-              <tr><td><kbd>Esc</kbd></td><td>{t("help.closeSearch")}</td></tr>
               <tr><td><kbd>/</kbd></td><td>{t("help.slashCmd")}</td></tr>
             </tbody>
           </table>

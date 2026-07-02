@@ -7,8 +7,7 @@ use tiny_http::{Header, Response, Server, StatusCode};
 
 #[tauri::command]
 fn get_cli_file() -> Option<String> {
-    let mut args = std::env::args().skip(1);
-    while let Some(arg) = args.next() {
+    for arg in std::env::args().skip(1) {
         if arg == "--" {
             continue;
         }

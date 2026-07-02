@@ -257,7 +257,7 @@ pub fn run() {
             stop_html_server,
         ])
         .setup(|app| {
-            use tauri::{Emitter, WebviewUrl, WebviewWindowBuilder};
+            use tauri::{WebviewUrl, WebviewWindowBuilder};
 
             // ── Native macOS menu bar ─────────────────────────────
             // macOS exposes a global menu bar at the top of the screen; on
@@ -267,6 +267,7 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+                use tauri::Emitter;
 
                 let file_menu = SubmenuBuilder::new(app, "File")
                     .item(&MenuItemBuilder::with_id("open", "Open File…")

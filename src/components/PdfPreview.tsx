@@ -22,7 +22,7 @@ export function PdfPreview({ file, onOutlineReady, jumpRef }: { file: LoadedFile
 
   // Tell the AI panel (rendered in a portal) to sit higher above the floating toolbar
   useEffect(() => {
-    document.documentElement.style.setProperty("--ai-panel-bottom", "85px");
+    document.documentElement.style.setProperty("--ai-panel-bottom", "80px");
     return () => { document.documentElement.style.removeProperty("--ai-panel-bottom"); };
   }, []);
   const [pages, setPages] = useState<number>(0);
